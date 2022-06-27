@@ -29,7 +29,7 @@ It currently has the following features :
 - [UCI](./engine-interface.md) interface (not fully supported)
 
 ## Why _Réglisse_ ?
-Like for [Ramsès-Chess](https://github.com/PaulJeFi/ramses-chess), I took a cat name. Réglisse is one of my friend's cat.
+As for [Ramsès-Chess](https://github.com/PaulJeFi/ramses-chess), I took a cat name. Réglisse is one of my friend's cat.
 
 ## Special Thanks
 See the [thanks file](./THANKS.md) to see people who made this project possible.
@@ -38,7 +38,7 @@ See the [thanks file](./THANKS.md) to see people who made this project possible.
 See the [liscence file](./LICENSE.txt) to know more about legal stuffs.
 
 ## How to use
-Réglisse supports some basics commands of the [UCI interface](./engine-interface.md). Three more commands exists :
+Réglisse supports some basics commands of the [UCI interface](./engine-interface.md). Three more commands exist :
    - ```move [move]``` : make the move (in UCI format) on the board
    - ```go move``` : make the engine search and play its move on the board
    - ```d``` : dysplays the [FEN](https://www.chessprogramming.org/Forsyth-Edwards_Notation) of the current position
