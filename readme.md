@@ -34,8 +34,8 @@ As for [Ramsès-Chess](https://github.com/PaulJeFi/ramses-chess), I took a cat n
 ## Special Thanks
 See the [thanks file](./THANKS.md) to see people who made this project possible.
 
-## LISENCE
-See the [liscence file](./LICENSE.txt) to know more about legal stuffs.
+## LICENSE
+See the [license file](./LICENSE.txt) to know more about legal stuffs.
 
 ## How to use
 Réglisse supports some basics commands of the [UCI interface](./engine-interface.md). Three more commands exist :
