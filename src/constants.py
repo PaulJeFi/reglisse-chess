@@ -1,4 +1,4 @@
-# In this file, you yill find some chess constants, used to do some strange 
+# In this file, you will find some chess constants, used to do some strange 
 # chess relative computations.
 
 # Used to place pieces in the starting position :
