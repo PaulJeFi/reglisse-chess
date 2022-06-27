@@ -26,7 +26,7 @@ def iterative_deepening(board: Board, depth: int) -> tuple :
     nodes = 0
 
     # Move ordering before search
-    tmp_moves = board.genLegals()
+    tmp_moves = board.genLegal()
 
     # Best-first move (depth 0) :
     b_move = tmp_moves[0]

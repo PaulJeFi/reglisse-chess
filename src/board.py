@@ -286,7 +286,7 @@ class Board :
         self.move_stack.pop()
 
     def attack(self, square: int, color: int) -> bool :
-        '''Determines if color attacks square. Used for example by legals moves
+        '''Determines if color attacks square. Used for example by legal moves
         verifications'''
 
         # Attacked by Knight
@@ -342,7 +342,7 @@ class Board :
         return False
 
     def genKnight(self, square: int, color: int) -> list :
-        '''Generation of pseudo-legals moves for a given knight'''
+        '''Generation of pseudo-legal moves for a given knight'''
         
         moves = []
         # color = WHITE is self.turn else BLACK
@@ -359,7 +359,7 @@ class Board :
         return moves
 
     def genSliding(self, square: int, color: int, VECTOR: list) -> list :
-        '''Generation of pseudo-legals moves for a given sliding piece.
+        '''Generation of pseudo-legal moves for a given sliding piece.
         Sliding pieces = Bishop + Rook + Queen (King too, but more complex)'''
         
         moves = []
@@ -558,7 +558,7 @@ class Board :
         return moves
 
     def genKing(self, square: int, color: int) -> list :
-        '''Generates LEGALS King moves'''
+        '''Generates LEGAL King moves'''
 
         moves = []
 
@@ -805,8 +805,8 @@ class Board :
 
         return moves
 
-    def genPseudoLegalsCaptures(self) -> list :
-        '''Generating pseudo-legals captures only.'''
+    def genPseudoLegalCaptures(self) -> list :
+        '''Generating pseudo-legal captures only.'''
 
         moves = []
         color = WHITE if self.turn else BLACK
@@ -880,8 +880,8 @@ class Board :
 
         return moves
 
-    def genLegals(self) -> list :
-        '''Generating legals moves only. DO NOT USE because too slow'''
+    def genLegal(self) -> list :
+        '''Generating legal moves only. DO NOT USE because too slow'''
 
         moves = []
         for move in self.genPseudoLegalMoves() :
@@ -921,7 +921,7 @@ class Board :
             Move  = encode_move(from_, to_, promotion,
                                 piece_type(self.board[to_]), ep)
 
-            assert Move in self.genLegals(), f'Illegal move : {move}'
+            assert Move in self.genLegal(), f'Illegal move : {move}'
 
             return Move
 

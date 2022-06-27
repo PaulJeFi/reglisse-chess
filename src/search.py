@@ -50,13 +50,13 @@ class Search :
         legal = False # To know if there is at least one legal move
         turn = WHITE if self.board.turn else BLACK
 
-        for move in self.board.genPseudoLegalsCaptures() :
+        for move in self.board.genPseudoLegalCaptures() :
             
             # TODO : check extension
 
             self.board.push(move)
             if piece_type(self.board.board[move & 0b_1111111]) == KING :
-                pass # As king moves are always legals in the way we generate
+                pass # As king moves are always legal in the way we generate
                      # king moves
             if self.board.is_check(turn) : # If the move is not a legal move
                 self.board.pop(move)
@@ -79,7 +79,7 @@ class Search :
                 for move in self.board.genPseudoLegalMoves() :
                     self.board.push(move)
                     if piece_type(self.board.board[move & 0b_1111111]) == KING :
-                        pass # As king moves are always legals in the way we
+                        pass # As king moves are always legal in the way we
                              # generate king moves
                     if self.board.is_check(turn) : # If the move is not legal
                         self.board.pop(move)
@@ -140,7 +140,7 @@ class Search :
 
             self.board.push(move)
             if piece_type(self.board.board[move & 0b_1111111]) == KING :
-                pass # As king moves are always legals in the way we generate
+                pass # As king moves are always legal in the way we generate
                      # king moves
             if self.board.is_check(turn) : # If the move is not a legal move
                 self.board.pop(move)
@@ -198,7 +198,7 @@ class Search :
 
             self.board.push(move)
             if piece_type(self.board.board[move & 0b_1111111]) == KING :
-                pass # As king moves are always legals in the way we generate
+                pass # As king moves are always legal in the way we generate
                      # king moves
             if self.board.is_check(turn) : # If the move is not a legal move
                 self.board.pop(move)

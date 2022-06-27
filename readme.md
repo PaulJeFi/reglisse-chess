@@ -1,12 +1,12 @@
 # Réglisse
 
 Réglisse is a chess engine written from scratch in Python.\
-Réglisse uses [mailbox](https://www.chessprogramming.org/Mailbox) and the idea behind it was simplicity and not playing strenght. I hope the code will be clear and well commented for them who want to understand how a chess engine works.
+Réglisse uses [mailbox](https://www.chessprogramming.org/Mailbox) and the idea behind it was simplicity and not playing strenght. I hope the code will be clear and well commented for those who want to understand how a chess engine works.
 
 
 It currently has the following features :
 
-- [Book](https://www.chessprogramming.org/Opening_Book) : [Stockfish](https://github.com/official-stockfish/Stockfish)['s openning book](https://github.com/official-stockfish/books)
+- [Book](https://www.chessprogramming.org/Opening_Book) : [Stockfish](https://github.com/official-stockfish/Stockfish)['s opening book](https://github.com/official-stockfish/books)
 - [Board representation](https://www.chessprogramming.org/Board_Representation)
     - [mailbox](https://www.chessprogramming.org/Mailbox)
     - [move encoding](https://www.chessprogramming.org/Encoding_Moves)
@@ -35,7 +35,7 @@ Like for [Ramsès-Chess](https://github.com/PaulJeFi/ramses-chess), I took a cat
 See the [thanks file](./THANKS.md) to see people who made this project possible.
 
 ## LISENCE
-See the [liscence file](./LICENSE.txt) to know more about legals stuffs.
+See the [liscence file](./LICENSE.txt) to know more about legal stuffs.
 
 ## How to use
 Réglisse supports some basics commands of the [UCI interface](./engine-interface.md). Three more commands exists :

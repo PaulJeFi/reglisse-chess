@@ -1,5 +1,5 @@
 # Special Thanks
-In this file I will thanks people without whom this project would not be possible :
+In this file I will thank people without whom this project would not be possible :
 
 
 - [Tom Kerrigan](http://www.tckerrigan.com) for his wonderfull educational engine TSCP (if your chess engine has a bug, go to read TSCP and the bug will no longer exist !)
