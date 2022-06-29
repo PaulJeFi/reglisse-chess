@@ -37,7 +37,7 @@ class Board :
             if char == 'q' : self.castling_rights[0] |= 0b_1000
 
         # 1.3 : en-passant square
-        if fen[3] == '-' :self.ep.append(-1)  # No en-passant allowed
+        if fen[3] == '-' : self.ep.append(-1)  # No en-passant allowed
         else : self.ep.append(SQUARE_NAMES.index(fen[3]))
 
         # 1.4 : move count

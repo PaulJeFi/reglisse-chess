@@ -64,7 +64,7 @@ def perft_z(board: Board, depth: int) -> int :
             board.pop(move)
             return keys[(key, depth)]
         elif piece_type(board.board[move & 0b_1111111]) == KING :
-            keys[(key, depth)] = perft(board, depth-1)
+            keys[(key, depth)] = perft_z(board, depth-1)
             nodes += keys[(key, depth)]
         elif not board.is_check(turn) :
             keys[(key, depth)] = perft_z(board, depth-1)

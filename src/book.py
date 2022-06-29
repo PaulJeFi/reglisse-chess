@@ -15,7 +15,6 @@ def move_from_book(board: Board, Book=book) :
         move = board.readMove(random.choice(table[fen]))
         return move
     except Exception :
-        # Let's try again, with a fen without ep allowed
         try :
             # Let's try again, with a fen without ep allowed
             fen = fen.split()

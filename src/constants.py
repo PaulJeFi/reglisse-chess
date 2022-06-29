@@ -154,7 +154,7 @@ def encode_move(
             return move
 
 def str_move(move: int) -> str :
-    '''Transform binary move to uci string'''
+    '''Transforms binary move to uci string'''
     return (
         SQUARE_NAMES[((0b_1111111 << 7) & move) >> 7] +
         SQUARE_NAMES[  0b_1111111       & move] + 
