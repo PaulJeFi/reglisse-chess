@@ -3,4 +3,6 @@
 - Move ordering
 - threefold repetition
 - TQS ?
-- Transposition Table ?
+- Transposition Table int QS
+- Aspiration Window
+- comment ./src/search.py

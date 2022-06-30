@@ -19,9 +19,12 @@ It currently has the following features :
     - [bishop pair](https://www.chessprogramming.org/Bishop_Pair)
 - [Search](https://www.chessprogramming.org/Search)
     - [PVS](https://www.chessprogramming.org/Principal_Variation_Search)
-    - [ZWS](https://www.chessprogramming.org/Principal_Variation_Search)
+    - [ZWS](https://www.chessprogramming.org/Principal_Variation_Search)(in PVS)
     - [PV](https://www.chessprogramming.org/Principal_Variation) store
         - [triangular PV-table](https://www.chessprogramming.org/Triangular_PV-Table)
+    - [TT](https://www.chessprogramming.org/Transposition_Table)
+        - [Zobrist Hashing](https://www.chessprogramming.org/Zobrist_Hashing)
+    - [Null Move Pruning](https://www.chessprogramming.org/Null_Move_Pruning)
     - [iterative deepening](https://www.chessprogramming.org/Iterative_Deepening)
     - [mate distance pruning](https://www.chessprogramming.org/Mate_Distance_Pruning)
     - [Quiescence Search](https://www.chessprogramming.org/Quiescence_Search)

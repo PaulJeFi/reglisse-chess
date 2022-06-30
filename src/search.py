@@ -1,59 +1,151 @@
 from board import Board
-from evaluation import mateValue, evaluate
 from constants import *
+import zobrist
+from evaluation import mateValue, evaluate
+
+zobrist.init_zobrist()
+
+
+R = 2
+ttSIZE = 100000
+hashEXACT = 0
+hashALPHA = 1
+hashBETA  = 2
+valUNKNOW = 1 # impossible to have eval = 1 in practise
+
+class Entry :
+    key = 0
+    depth: int
+    value: int
+    flag: int
+
+tt = [Entry() for _ in range(ttSIZE)]
+
+def ProbeHash(board: Board, depth: int, alpha: int, beta: int) -> int :
+
+    hash_ = zobrist.hash(board)
+    entry = tt[hash_ % ttSIZE]
+    if entry.key == hash_ and entry.depth >= depth :
+        if entry.flag == hashEXACT :
+            return entry.value
+        if entry.flag == hashALPHA and entry.value <= alpha :
+            return alpha
+        if entry.flag == hashBETA and entry.value >= beta :
+            return beta
+    return valUNKNOW
+
+def RecordHash(board: Board, depth: int, val: int, flag: int) -> None :
+
+    global tt
+    hash_ = zobrist.hash(board)
+    entry = Entry()
+    entry.key   = hash_
+    entry.value = val
+    entry.flag  = flag
+    entry.depth = depth
+    tt[hash_ % ttSIZE] = entry
 
 class Search :
 
-    def __init__(self, board: Board, depth: int=3) -> None :
-        
+    def __init__(self, board: Board, depth: int) -> None :
         self.board = board
         self.depth = depth
         self.nodes = 0
         self.pv = list(range(int((self.depth*self.depth + self.depth)/2)+1))
-        # For mate distance pruning
-        self.base_number_of_moves = len(self.board.move_stack)
 
-    def quiesce(self, alpha: int=-mateValue, beta: int=mateValue) -> int :
-        '''A quiescence search'''
+    def pvSearch(self, depth: int, alpha: int=-mateValue,
+                  beta: int=mateValue, mate: int=mateValue,
+                  pvIndex: int=0, storePV: bool=True) -> int :
 
         self.nodes += 1
-        # return evaluate(self.board)
-
-        # Mate distance pruning
-        # Upper bound
-        mating_value = mateValue - (self.base_number_of_moves -
-                                        len(self.board.move_stack))
-        if mating_value <= beta :
-            beta = mating_value
-            if alpha >= mating_value :
-                return mating_value
-
-        # Lower bound
-        mating_value = -mateValue + (self.base_number_of_moves - 
-                                        len(self.board.move_stack))
-        if mating_value >= alpha :
-            alpha = mating_value
-            if beta <= mating_value : 
-                return mating_value
-
-        if self.board.move_count[-1][0] >= 100 : # draw by fifty move rule
-            return 0
-
-        stand_pat = evaluate(self.board)
-
-        # normal QSearch stuff
-        if (stand_pat >= beta) : # beta cutoff
-            return beta
-        if (alpha < stand_pat) :
-            alpha = stand_pat
-
-        legal = False # To know if there is at least one legal move
+        fFoundPv = False
+        hashf = hashALPHA
         turn = WHITE if self.board.turn else BLACK
+
+        if not beta - alpha > 1 : # Probe TT is node is not a PV node
+            val = ProbeHash(self.board, depth, alpha, beta)
+            if val != valUNKNOW :
+                return val
+
+        if depth <= 0 :
+            val =  self.Quiescent(alpha, beta, mate-1)
+            RecordHash(self.board, depth, val, hashEXACT)
+            return val
+        
+        # Null move pruning
+        if not self.board.is_check(turn) :
+            self.board.push(NONE) # make a null move
+            val = -self.pvSearch(depth-1-R, -beta, -beta+1, mate)
+            self.board.pop(NONE)
+            if val >= beta :
+                RecordHash(self.board, depth, beta, hashBETA)
+                return beta
+
+        legal = False
+        # PV store initialisation :
+        if storePV :
+            self.pv[pvIndex] = 0 # no pv yet
+        pvNextIndex = pvIndex + depth
+        
+
+        for move in self.board.genPseudoLegalMoves() :
+            self.board.push(move)
+            if piece_type(self.board.board[move & 0b_1111111]) == KING :
+                pass # As king moves are always legal in the way we generate
+                     # king moves
+            if self.board.is_check(turn) : # If the move is not a legal move
+                self.board.pop(move)
+                continue
+            legal = True # The move is a legal move
+
+
+            if fFoundPv :
+                val = -self.pvSearch(depth-1, -alpha-1, -alpha, mate-1, 0,
+                                     False)
+                if val > alpha and val < beta :
+                    val = -self.pvSearch(depth-1, -beta, -alpha, mate-1,
+                                         pvNextIndex, storePV)
+            else :
+                val = -self.pvSearch(depth-1, -beta, -alpha, mate-1,
+                                     pvNextIndex, storePV)
+
+            self.board.pop(move)
+
+            if val >= beta :
+                RecordHash(self.board, depth, beta, hashBETA)
+                return beta
+            if val > alpha :
+                hashf = hashEXACT
+                alpha = val
+                fFoundPv = True
+                # PV store :
+                if storePV :
+                    self.pv[pvIndex] = move
+
+        # End of line (and game) :
+        if not legal :
+            if self.board.is_check(turn) :
+                return -mate
+            return 0 # If there are no legal move and no check, it's a stalemate
+
+        RecordHash(self.board, depth, alpha, hashf)
+        return alpha
+
+    def Quiescent(self, alpha: int, beta: int, mate: int=mateValue) -> int :
+
+        turn = WHITE if self.board.turn else BLACK
+        self.nodes += 1
+
+        if self.board.is_check(turn) :
+            return self.pvSearch(1, alpha, beta, mate-1, 0, False)
+        
+        val = evaluate(self.board)
+        if val >= beta :
+            return beta
+        if val > alpha :
+            alpha = val
 
         for move in self.board.genPseudoLegalCaptures() :
-            
-            # TODO : check extension
-
             self.board.push(move)
             if piece_type(self.board.board[move & 0b_1111111]) == KING :
                 pass # As king moves are always legal in the way we generate
@@ -61,174 +153,12 @@ class Search :
             if self.board.is_check(turn) : # If the move is not a legal move
                 self.board.pop(move)
                 continue
-            legal = True # The move is a legal move
 
-            score = -self.quiesce(-beta, -alpha)
+            val = -self.Quiescent(-beta, -alpha, mate-1)
             self.board.pop(move)
 
-            if score >= beta :
+            if val >= beta :
                 return beta
-            if score > alpha :
-                alpha = score
-
-        # End of line (and game) :
-        if not legal :
-
-            if self.board.is_check(turn) :
-                
-                for move in self.board.genPseudoLegalMoves() :
-                    self.board.push(move)
-                    if piece_type(self.board.board[move & 0b_1111111]) == KING :
-                        pass # As king moves are always legal in the way we
-                             # generate king moves
-                    if self.board.is_check(turn) : # If the move is not legal
-                        self.board.pop(move)
-                        continue
-                    legal = True # The move is a legal move
-
-                    score = -self.quiesce(-beta, -alpha)
-                    self.board.pop(move)
-
-                    if score >= beta :
-                        return beta
-                    if score > alpha :
-                        alpha = score
-                
-                if not legal : # if there is a check that cannot be evaded, it's
-                               # checkmate
-                    return -mateValue + (self.base_number_of_moves -
-                                  len(self.board.move_stack))
-
-            return 0 # If there are no legal move and no check, it's a stalemate
-
-
-        return alpha  
-
-    def zwSearch(self, beta: int, depth: int) -> int :
-        '''fail-hard zero window search, returns either beta-1 or beta'''
-
-        self.nodes += 1
-
-        alpha = beta - 1
-        # this is either a cut- or all-node
-
-        # Mate distance pruning
-        # Upper bound
-        mating_value = mateValue - (self.depth - depth)
-        if mating_value <= beta :
-            beta = mating_value
-            if alpha >= mating_value :
-                return mating_value
-
-        # Lower bound
-        mating_value = -mateValue + (self.depth - depth)
-        if mating_value >= alpha :
-            alpha = mating_value
-            if beta <= mating_value : 
-                return mating_value
-
-        if self.board.move_count[-1][0] >= 100 : # draw by fifty move rule
-            return 0
-
-        if depth == 0 :
-            return self.quiesce(beta-1, beta)
-
-        legal = False # To know if there is at least one legal move
-        turn = WHITE if self.board.turn else BLACK
-
-        for move in self.board.genPseudoLegalMoves() :
-
-            self.board.push(move)
-            if piece_type(self.board.board[move & 0b_1111111]) == KING :
-                pass # As king moves are always legal in the way we generate
-                     # king moves
-            if self.board.is_check(turn) : # If the move is not a legal move
-                self.board.pop(move)
-                continue
-            legal = True # The move is a legal move
-
-            score = -self.zwSearch(1-beta, depth - 1)
-            self.board.pop(move)        
-
-            if score >= beta :
-                return beta # fail-hard beta-cutoff   
-
-        # End of line (and game) :
-        if not legal :
-            if self.board.is_check(turn) :
-                return mating_value
-            return 0 # If there are no legal move and no check, it's a stalemate
-
-        return beta-1 # fail-hard, return alpha
-
-    def pvSearch(self, alpha: int=-mateValue, beta: int=mateValue, depth=3,
-        pvIndex: int=0) -> int :
-
-        self.nodes += 1
-
-        # Mate distance pruning
-        # Upper bound
-        mating_value = mateValue - (self.depth - depth)
-        if mating_value <= beta :
-            beta = mating_value
-            if alpha >= mating_value :
-                return mating_value
-        # Lower bound
-        mating_value = -mateValue + (self.depth - depth)
-        if mating_value >= alpha :
-            alpha = mating_value
-            if beta <= mating_value : 
-                return mating_value
-
-        if self.board.move_count[-1][0] >= 100 : # draw by fifty move rule
-            return 0
-
-        if depth == 0 :
-            return self.quiesce(alpha, beta)
-
-        legal = False # To know if there is at least one legal move
-        turn = WHITE if self.board.turn else BLACK
-
-        # PV store initialisation :
-        self.pv[pvIndex] = 0 # no pv yet
-        pvNextIndex = pvIndex + depth
-        bSearchPv = True
-
-        for move in self.board.genPseudoLegalMoves() :
-
-            self.board.push(move)
-            if piece_type(self.board.board[move & 0b_1111111]) == KING :
-                pass # As king moves are always legal in the way we generate
-                     # king moves
-            if self.board.is_check(turn) : # If the move is not a legal move
-                self.board.pop(move)
-                continue
-            legal = True # The move is a legal move
-
-            if bSearchPv :
-                score = -self.pvSearch(-beta, -alpha, depth - 1, pvNextIndex)
-            else :
-                score = -self.zwSearch(-alpha, depth - 1)
-                if ( score > alpha ) : # in fail-soft ... && score < beta ) is
-                                       # common
-                    # re-search :
-                    score = -self.pvSearch(-beta, -alpha, depth-1, pvNextIndex)
-
-            self.board.pop(move)
-
-            if score >= beta :
-                return beta # fail-hard beta-cutoff
-            if score > alpha :
-                alpha = score # alpha acts like max in MiniMax
-                bSearchPv = False   # *1)
-
-                # PV store :
-                self.pv[pvIndex] = move 
-
-        # End of line (and game) :
-        if not legal :
-            if self.board.is_check(turn) :
-                return mating_value
-            return 0 # If there are no legal move and no check, it's a stalemate
-
+            if val > alpha :
+                alpha = val
         return alpha
