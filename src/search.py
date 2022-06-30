@@ -74,7 +74,7 @@ class Search :
         hashf = hashALPHA
         turn = WHITE if self.board.turn else BLACK
 
-        if not beta - alpha > 1 : # Probe TT is node is not a PV node
+        if not beta - alpha > 1 : # Probe TT if node is not a PV node
             val = ProbeHash(self.board, depth, alpha, beta)
             if val != valUNKNOW :
                 return val
