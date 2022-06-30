@@ -29,6 +29,8 @@ It currently has the following features :
     - [mate distance pruning](https://www.chessprogramming.org/Mate_Distance_Pruning)
     - [Quiescence Search](https://www.chessprogramming.org/Quiescence_Search)
         - [check extensions](https://www.chessprogramming.org/Check_Extensions) (check-evaders for the moment)
+    - [Move Orderning](https://www.chessprogramming.org/Move_Ordering)
+        - [History Heuristic](https://www.chessprogramming.org/History_Heuristic)
 - [UCI](./engine-interface.md) interface (not fully supported)
 
 ## Why _Réglisse_ ?

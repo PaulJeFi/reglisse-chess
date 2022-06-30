@@ -20,6 +20,9 @@ class Entry :
     flag: int
 
 tt = [Entry() for _ in range(ttSIZE)]
+history = [
+    [[NONE for ___ in range(98+1)] for __ in range(98+1)] for _ in range(2)
+]
 
 def ProbeHash(board: Board, depth: int, alpha: int, beta: int) -> int :
 
@@ -45,6 +48,13 @@ def RecordHash(board: Board, depth: int, val: int, flag: int) -> None :
     entry.depth = depth
     tt[hash_ % ttSIZE] = entry
 
+def ordering(board: Board) -> list :
+    moves = [(move, history[int(board.turn)][(move & 0b_1111111_0000000) >> 7]\
+            [move & 0b_1111111]) for move in board.genPseudoLegalMoves()]
+    move_list = sorted(moves, key=lambda k: k[1], reverse=True)
+    move_list = [move[0] for move in move_list]
+    return move_list
+
 class Search :
 
     def __init__(self, board: Board, depth: int) -> None :
@@ -56,6 +66,8 @@ class Search :
     def pvSearch(self, depth: int, alpha: int=-mateValue,
                   beta: int=mateValue, mate: int=mateValue,
                   pvIndex: int=0, storePV: bool=True) -> int :
+        
+        global history
 
         self.nodes += 1
         fFoundPv = False
@@ -88,7 +100,7 @@ class Search :
         pvNextIndex = pvIndex + depth
         
 
-        for move in self.board.genPseudoLegalMoves() :
+        for move in ordering(self.board) :
             self.board.push(move)
             if piece_type(self.board.board[move & 0b_1111111]) == KING :
                 pass # As king moves are always legal in the way we generate
@@ -113,7 +125,12 @@ class Search :
 
             if val >= beta :
                 RecordHash(self.board, depth, beta, hashBETA)
+                if not move & 0b_1_111_000_0000000_0000000 :
+                    history[int(self.board.turn)]\
+                        [(move & 0b_1111111_0000000) >> 7]\
+                            [move & 0b_1111111] += depth ** 2
                 return beta
+
             if val > alpha :
                 hashf = hashEXACT
                 alpha = val

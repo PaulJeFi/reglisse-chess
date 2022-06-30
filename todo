@@ -1,6 +1,9 @@
 # TO DO
 - Determine if move gives check
 - Move ordering
+    - in QS
+    - killermoves ?
+    - MVV LVA
 - threefold repetition
 - TQS ?
 - Transposition Table int QS
