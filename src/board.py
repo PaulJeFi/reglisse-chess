@@ -309,10 +309,9 @@ class Board :
                     return True
                 if self.board[attacker] == color | QUEEN :
                     return True
-                elif self.board[attacker] == EMPTY :
+                if self.board[attacker] == EMPTY :
                     continue
-                else :
-                    break
+                break
                 
         # Attacked by Rook or Queen
         for offset in ROOK_VECTOR :
@@ -322,10 +321,9 @@ class Board :
                     return True
                 if self.board[attacker] == color | QUEEN :
                     return True
-                elif self.board[attacker] == EMPTY :
+                if self.board[attacker] == EMPTY :
                     continue
-                else :
-                    break
+                break
                 
         # Attacked by pawn
         if color == WHITE : # White pawn
