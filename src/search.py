@@ -83,11 +83,13 @@ class Search :
             val =  self.Quiescent(alpha, beta, mate-1)
             RecordHash(self.board, depth, val, hashEXACT)
             return val
+
+        isCheck = self.board.is_check(turn)
         
         # Null move pruning
-        if not self.board.is_check(turn) :
+        if not (isCheck  or storePV) :
             self.board.push(NONE) # make a null move
-            val = -self.pvSearch(depth-1-R, -beta, -beta+1, mate)
+            val = -self.pvSearch(depth-1-R, -beta, -beta+1, mate, storePV=False)
             self.board.pop(NONE)
             if val >= beta :
                 RecordHash(self.board, depth, beta, hashBETA)
@@ -141,7 +143,7 @@ class Search :
 
         # End of line (and game) :
         if not legal :
-            if self.board.is_check(turn) :
+            if isCheck :
                 return -mate
             return 0 # If there are no legal move and no check, it's a stalemate
 
