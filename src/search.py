@@ -7,7 +7,7 @@ zobrist.init_zobrist()
 
 
 R = 2
-ttSIZE = 100000
+ttSIZE = 10_000_000
 hashEXACT = 0
 hashALPHA = 1
 hashBETA  = 2
@@ -24,9 +24,11 @@ history = [
     [[NONE for ___ in range(98+1)] for __ in range(98+1)] for _ in range(2)
 ]
 
-def ProbeHash(board: Board, depth: int, alpha: int, beta: int) -> int :
+def ProbeHash(board: Board, depth: int, alpha: int, beta: int,
+              hash_=False) -> int :
 
-    hash_ = zobrist.hash(board)
+    if not hash_ :
+        hash_ = zobrist.hash(board)
     entry = tt[hash_ % ttSIZE]
     if entry.key == hash_ and entry.depth >= depth :
         if entry.flag == hashEXACT :
@@ -37,10 +39,12 @@ def ProbeHash(board: Board, depth: int, alpha: int, beta: int) -> int :
             return beta
     return valUNKNOW
 
-def RecordHash(board: Board, depth: int, val: int, flag: int) -> None :
+def RecordHash(board: Board, depth: int, val: int, flag: int,
+               hash_=False) -> None :
 
     global tt
-    hash_ = zobrist.hash(board)
+    if not hash_ :
+        hash_ = zobrist.hash(board)
     entry = Entry()
     entry.key   = hash_
     entry.value = val
@@ -65,34 +69,50 @@ class Search :
 
     def pvSearch(self, depth: int, alpha: int=-mateValue,
                   beta: int=mateValue, mate: int=mateValue,
-                  pvIndex: int=0, storePV: bool=True) -> int :
+                  pvIndex: int=0, storePV: bool=True,
+                  checkFlag: int=0) -> int :
         
         global history
+
+        # checkFlag : some infomration about check
+        #    . 1 -> no check
+        #    . 0 -> unknow
+        #    .-1 -> is check
 
         self.nodes += 1
         fFoundPv = False
         hashf = hashALPHA
         turn = WHITE if self.board.turn else BLACK
+        hash_ = zobrist.hash(self.board)
 
-        if not beta - alpha > 1 : # Probe TT if node is not a PV node
-            val = ProbeHash(self.board, depth, alpha, beta)
+        if (not beta - alpha > 1) or (checkFlag == -1) : # Probe TT if node is
+                                                         # not a PV node
+            # If checkFlag = -1 we know this is a QS-node
+            val = ProbeHash(self.board, depth, alpha, beta, hash_)
             if val != valUNKNOW :
                 return val
 
         if depth <= 0 :
             val =  self.Quiescent(alpha, beta, mate-1)
-            RecordHash(self.board, depth, val, hashEXACT)
+            RecordHash(self.board, depth, val, hashEXACT, hash_)
             return val
 
-        isCheck = self.board.is_check(turn)
+        if checkFlag == -1 : # QuiescentSearch calls PVSearch only if board is
+                             # check
+            isCheck = True
+        elif checkFlag :
+            isCheck = False
+        else :
+            isCheck = self.board.is_check(turn)
         
         # Null move pruning
         if not (isCheck  or storePV) :
             self.board.push(NONE) # make a null move
-            val = -self.pvSearch(depth-1-R, -beta, -beta+1, mate, storePV=False)
+            val = -self.pvSearch(depth-1-R, -beta, -beta+1, mate, storePV=False,
+                                 checkFlag=1)
             self.board.pop(NONE)
             if val >= beta :
-                RecordHash(self.board, depth, beta, hashBETA)
+                RecordHash(self.board, depth, beta, hashBETA, hash_)
                 return beta
 
         legal = False
@@ -115,18 +135,18 @@ class Search :
 
             if fFoundPv :
                 val = -self.pvSearch(depth-1, -alpha-1, -alpha, mate-1, 0,
-                                     False)
+                                     False, 0)
                 if val > alpha and val < beta :
                     val = -self.pvSearch(depth-1, -beta, -alpha, mate-1,
-                                         pvNextIndex, storePV)
+                                         pvNextIndex, storePV, 0)
             else :
                 val = -self.pvSearch(depth-1, -beta, -alpha, mate-1,
-                                     pvNextIndex, storePV)
+                                     pvNextIndex, storePV, 0)
 
             self.board.pop(move)
 
             if val >= beta :
-                RecordHash(self.board, depth, beta, hashBETA)
+                RecordHash(self.board, depth, beta, hashBETA, hash_)
                 if not move & 0b_1_111_000_0000000_0000000 :
                     history[int(self.board.turn)]\
                         [(move & 0b_1111111_0000000) >> 7]\
@@ -147,7 +167,7 @@ class Search :
                 return -mate
             return 0 # If there are no legal move and no check, it's a stalemate
 
-        RecordHash(self.board, depth, alpha, hashf)
+        RecordHash(self.board, depth, alpha, hashf, hash_)
         return alpha
 
     def Quiescent(self, alpha: int, beta: int, mate: int=mateValue) -> int :
@@ -156,7 +176,7 @@ class Search :
         self.nodes += 1
 
         if self.board.is_check(turn) :
-            return self.pvSearch(1, alpha, beta, mate-1, 0, False)
+            return self.pvSearch(1, alpha, beta, mate-1, 0, False, -1)
         
         val = evaluate(self.board)
         if val >= beta :
