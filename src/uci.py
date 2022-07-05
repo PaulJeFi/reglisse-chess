@@ -44,7 +44,9 @@ def main() -> None :
 
                     if 'moves' in inp :
                         for move in inp[inp.index('moves')+1:] :
-                            board.push(board.readMove(move))
+                            Move = board.readMove(move)
+                            if Move != None :
+                                board.push(Move)
 
                 except Exception :
                     print('Invalid FEN or moves')
