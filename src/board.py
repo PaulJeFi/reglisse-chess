@@ -659,8 +659,6 @@ class Board :
         Note : queening (or just promotiong a pawn) is here considered as a
         capture move, because material balance changes.'''
 
-        moves = []
-
         # White's pawns
         if color == WHITE :
 
@@ -669,67 +667,67 @@ class Board :
 
                 if self.board[square - 10] == EMPTY : # Normal promotion
                     for piece in (QUEEN, KNIGHT, BISHOP, ROOK) :
-                        moves.append(encode_move(
+                        yield encode_move(
                             square,
                             square - 10,
                             piece,
-                        ))
+                        )
 
                 # Capture promotion
                 if piece_color(self.board[square - 11]) == BLACK :
                     for piece in (QUEEN, KNIGHT, BISHOP, ROOK) :
-                        moves.append(encode_move(
+                        yield encode_move(
                             square,
                             square - 11,
                             piece,
                             piece_type(self.board[square - 11])
-                        ))
+                        )
                 if piece_color(self.board[square - 9]) == BLACK :
                     for piece in (QUEEN, KNIGHT, BISHOP, ROOK) :
-                        moves.append(encode_move(
+                        yield encode_move(
                             square,
                             square - 9,
                             piece,
                             piece_type(self.board[square - 9])
-                        ))
+                        )
 
             else :
 
                 # Capture move
                 if piece_color(self.board[square - 11]) == BLACK :
-                    moves.append(encode_move(
+                    yield encode_move(
                         square,
                         square - 11,
                         0,
                         piece_type(self.board[square - 11])
-                    ))
+                    )
                 if piece_color(self.board[square - 9]) == BLACK :
-                    moves.append(encode_move(
+                    yield encode_move(
                         square,
                         square - 9,
                         0,
                         piece_type(self.board[square - 9])
-                    ))
+                    )
 
                 # En-passant
                 if square - 11 == self.ep[-1] :
-                    moves.append(encode_move(
+                    yield encode_move(
                         square,
                         square - 11,
                         0,
                         0, # 0 because in ep, the captured pawn is not on the
                            #target square
                         1
-                    ))
+                    )
                 if square - 9 == self.ep[-1] :
-                    moves.append(encode_move(
+                    yield encode_move(
                         square,
                         square - 9,
                         0,
                         0, # 0 because in ep, the captured pawn is not on the
                            # target square
                         1
-                    ))
+                    )
 
         # Black's pawns
         else :
@@ -739,74 +737,71 @@ class Board :
 
                 if self.board[square + 10] == EMPTY : # Normal promotion
                     for piece in (QUEEN, KNIGHT, BISHOP, ROOK) :
-                        moves.append(encode_move(
+                        yield encode_move(
                             square,
                             square + 10,
                             piece,
-                        ))
+                        )
 
                 # Capture promotion
                 if piece_color(self.board[square + 11]) == WHITE :
                     for piece in (QUEEN, KNIGHT, BISHOP, ROOK) :
-                        moves.append(encode_move(
+                        yield encode_move(
                             square,
                             square + 11,
                             piece,
                             piece_type(self.board[square + 11])
-                        ))
+                        )
                 if piece_color(self.board[square + 9]) == WHITE :
                     for piece in (QUEEN, KNIGHT, BISHOP, ROOK) :
-                        moves.append(encode_move(
+                        yield encode_move(
                             square,
                             square + 9,
                             piece,
                             piece_type(self.board[square + 9])
-                        ))
+                        )
 
             else :
 
                 # Capture move
                 if piece_color(self.board[square + 11]) == WHITE :
-                    moves.append(encode_move(
+                    yield encode_move(
                         square,
                         square + 11,
                         0,
                         piece_type(self.board[square + 11])
-                    ))
+                    )
                 if piece_color(self.board[square + 9]) == WHITE :
-                    moves.append(encode_move(
+                    yield encode_move(
                         square,
                         square + 9,
                         0,
                         piece_type(self.board[square + 9])
-                    ))
+                    )
 
                 # En-passant
                 if square + 11 == self.ep[-1] :
-                    moves.append(encode_move(
+                    yield encode_move(
                         square,
                         square + 11,
                         0,
                         0, # 0 because in ep, the captured pawn is not on the
                            # target square
                         1
-                    ))
+                    )
                 if square + 9 == self.ep[-1] :
-                    moves.append(encode_move(
+                    yield encode_move(
                         square,
                         square + 9,
                         0,
                         0, # 0 because in ep, the captured pawn is not on the
                            # target square
                         1
-                    ))
-
-        return moves
+                    )
 
     def genPseudoLegalCaptures(self) -> list :
         '''Generating pseudo-legal captures only.'''
 
-        moves = []
         color = WHITE if self.turn else BLACK
 
         # Let's iterate over each square
@@ -823,13 +818,13 @@ class Board :
                         if self.board[to_] != OFF_BOARD and \
                             not (self.board[to_] & color) and \
                                 self.board[to_] != EMPTY :
-                            moves.append(encode_move(
+                            yield encode_move(
                                 square,
                                 to_,
                                 0,
                                 (self.board[to_] | WHITE|BLACK) ^ (WHITE|BLACK),
                                 0
-                            ))
+                            )
         
 
                 # Sliding pieces
@@ -841,19 +836,19 @@ class Board :
                                 (self.board[to_] & color) :
                                 break
                             elif self.board[to_] != EMPTY :
-                                moves.append(encode_move(
+                                yield encode_move(
                                     square,
                                     to_,
                                     0,
                                     (self.board[to_]|WHITE|BLACK)^(WHITE|BLACK),
-                                ))
+                                )
                                 if self.board[to_] != EMPTY :
                                     break
 
                 # Pawn
                 elif piece == PAWN :
                     # Promotions moves are added with captures here.
-                    moves = [*moves, *self.genPawnCapture(square, color)]
+                    yield from self.genPawnCapture(square, color)
 
                 # King
                 elif piece == KING :
@@ -868,15 +863,13 @@ class Board :
                             not (self.board[to_] & color) \
                             and not self.attack(to_, opp) \
                                 and self.board[to_] != EMPTY :
-                            moves.append(encode_move(
+                            yield encode_move(
                                 square,
                                 to_,
                                 0,
                                 (self.board[to_] | WHITE|BLACK) ^ (WHITE|BLACK),
                                 0
-                            ))
-
-        return moves
+                            )
 
     def genLegal(self) -> list :
         '''Generating legal moves only. DO NOT USE because too slow'''
