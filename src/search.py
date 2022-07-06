@@ -147,16 +147,16 @@ class Search :
 
             if val >= beta :
                 RecordHash(self.board, depth, beta, hashBETA, hash_)
-                if not move & 0b_1_111_000_0000000_0000000 :
-                    history[int(self.board.turn)]\
-                        [(move & 0b_1111111_0000000) >> 7]\
-                            [move & 0b_1111111] += depth ** 2
                 return beta
 
             if val > alpha :
                 hashf = hashEXACT
                 alpha = val
                 fFoundPv = True
+                if not move & 0b_1_111_000_0000000_0000000 :
+                    history[int(self.board.turn)]\
+                        [(move & 0b_1111111_0000000) >> 7]\
+                            [move & 0b_1111111] += depth ** 2
                 # PV store :
                 if storePV :
                     self.pv[pvIndex] = move
