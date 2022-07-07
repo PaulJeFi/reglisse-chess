@@ -12,6 +12,7 @@ hashEXACT = 0
 hashALPHA = 1
 hashBETA  = 2
 valUNKNOW = 1 # impossible to have eval = 1 in practise
+MAX_PLY   = 1024
 
 class Entry :
     key = 0
@@ -23,6 +24,7 @@ tt = [Entry() for _ in range(ttSIZE)]
 history = [
     [[NONE for ___ in range(98+1)] for __ in range(98+1)] for _ in range(2)
 ]
+killers = [[NONE, NONE] for _ in range(MAX_PLY)]
 
 def ProbeHash(board: Board, depth: int, alpha: int, beta: int,
               hash_=False) -> int :
@@ -52,9 +54,20 @@ def RecordHash(board: Board, depth: int, val: int, flag: int,
     entry.depth = depth
     tt[hash_ % ttSIZE] = entry
 
-def ordering(board: Board) -> list :
-    moves = [(move, history[int(board.turn)][(move & 0b_1111111_0000000) >> 7]\
-            [move & 0b_1111111]) for move in board.genPseudoLegalMoves()]
+def score_move(move, board, ply: int) :
+    score = 0
+    if not move & 0b_1_111_000_0000000_0000000 :
+        if killers[ply][0] == move :
+            score += 9000
+        elif killers[ply][1] == move :
+            score += 8000
+        score +=  history[int(board.turn)][(move & 0b_1111111_0000000) >> 7]\
+                [move & 0b_1111111]
+    return score
+
+def ordering(board: Board, ply: int) -> list :
+    moves = [(move, score_move(move, board, ply)) for move in
+             board.genPseudoLegalMoves()]
     move_list = sorted(moves, key=lambda k: k[1], reverse=True)
     move_list = [move[0] for move in move_list]
     return move_list
@@ -66,6 +79,7 @@ class Search :
         self.depth = depth
         self.nodes = 0
         self.pv = list(range(int((self.depth*self.depth + self.depth)/2)+1))
+        self.ply = 0
 
     def pvSearch(self, depth: int, alpha: int=-mateValue,
                   beta: int=mateValue, mate: int=mateValue,
@@ -73,6 +87,7 @@ class Search :
                   checkFlag: int=0) -> int :
         
         global history
+        global killers
 
         # checkFlag : some infomration about check
         #    . 1 -> no check
@@ -93,8 +108,10 @@ class Search :
                 return val
 
         if depth <= 0 :
+            self.ply += 1
             val =  self.Quiescent(alpha, beta, mate-1)
             RecordHash(self.board, depth, val, hashEXACT, hash_)
+            self.ply -= 1
             return val
 
         if checkFlag == -1 : # QuiescentSearch calls PVSearch only if board is
@@ -107,10 +124,12 @@ class Search :
         
         # Null move pruning
         if not (isCheck  or storePV) :
+            self.ply += 1
             self.board.push(NONE) # make a null move
             val = -self.pvSearch(depth-1-R, -beta, -beta+1, mate, storePV=False,
                                  checkFlag=1)
             self.board.pop(NONE)
+            self.ply -= 1
             if val >= beta :
                 RecordHash(self.board, depth, beta, hashBETA, hash_)
                 return beta
@@ -121,8 +140,8 @@ class Search :
             self.pv[pvIndex] = 0 # no pv yet
         pvNextIndex = pvIndex + depth
         
-
-        for move in ordering(self.board) :
+        self.ply += 1
+        for move in ordering(self.board, self.ply) :
             self.board.push(move)
             if piece_type(self.board.board[move & 0b_1111111]) == KING :
                 pass # As king moves are always legal in the way we generate
@@ -147,6 +166,10 @@ class Search :
 
             if val >= beta :
                 RecordHash(self.board, depth, beta, hashBETA, hash_)
+                if not move & 0b_1_111_000_0000000_0000000 :
+                    killers[self.ply][1] = killers[self.ply][0]
+                    killers[self.ply][0] = move
+                self.ply -= 1
                 return beta
 
             if val > alpha :
@@ -165,21 +188,27 @@ class Search :
         if not legal :
             if isCheck :
                 return -mate
+            self.ply -= 1
             return 0 # If there are no legal move and no check, it's a stalemate
 
         RecordHash(self.board, depth, alpha, hashf, hash_)
+        self.ply -= 1
         return alpha
 
     def Quiescent(self, alpha: int, beta: int, mate: int=mateValue) -> int :
 
         turn = WHITE if self.board.turn else BLACK
         self.nodes += 1
+        self.ply += 1
 
         if self.board.is_check(turn) :
-            return self.pvSearch(1, alpha, beta, mate-1, 0, False, -1)
+            val = self.pvSearch(1, alpha, beta, mate-1, 0, False, -1)
+            self.ply -= 1
+            return val
         
         val = evaluate(self.board)
         if val >= beta :
+            self.ply -= 1
             return beta
         if val > alpha :
             alpha = val
@@ -197,7 +226,9 @@ class Search :
             self.board.pop(move)
 
             if val >= beta :
+                self.ply -= 1
                 return beta
             if val > alpha :
                 alpha = val
+        self.ply -= 1
         return alpha
