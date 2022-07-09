@@ -6,24 +6,31 @@ from evaluation import mateValue, evaluate
 zobrist.init_zobrist()
 
 
-R = 2
-ttSIZE = 10_000_000
+R = 2               # R is the depth reduction when we do a null-move search.
+                    # See later.
+ttSIZE = 10_000_000 # The size of the transposition table (TT).
+
+# Some hash flag used in TT :
 hashEXACT = 0
 hashALPHA = 1
 hashBETA  = 2
-valUNKNOW = 1 # impossible to have eval = 1 in practise
-MAX_PLY   = 1024
+valUNKNOW = 1       # impossible to have eval = 1 in practise
+
+MAX_PLY   = 1024    # ply are used in Killer Moves. See later.
 
 class Entry :
+    '''A class that represents a TT entry'''
     key = 0
     depth: int
     value: int
     flag: int
 
-tt = [Entry() for _ in range(ttSIZE)]
+tt = [Entry() for _ in range(ttSIZE)] # TT
+# History heuristic store :
 history = [
     [[NONE for ___ in range(98+1)] for __ in range(98+1)] for _ in range(2)
 ]
+# Killer move store :
 killers = [[NONE, NONE] for _ in range(MAX_PLY)]
 
 # MVV_LLA[attacker][victim]]
@@ -39,6 +46,9 @@ MVV_LLA = [
 
 def ProbeHash(board: Board, depth: int, alpha: int, beta: int,
               hash_=False) -> int :
+    '''
+    Probe the TT to extract information if it exists about a given position.
+    '''
 
     if not hash_ :
         hash_ = zobrist.hash(board)
@@ -54,6 +64,7 @@ def ProbeHash(board: Board, depth: int, alpha: int, beta: int,
 
 def RecordHash(board: Board, depth: int, val: int, flag: int,
                hash_=False) -> None :
+    '''Store information about the position in the TT.'''
 
     global tt
     if not hash_ :
@@ -66,15 +77,22 @@ def RecordHash(board: Board, depth: int, val: int, flag: int,
     tt[hash_ % ttSIZE] = entry
 
 def score_move(move: int, board: Board, ply: int) :
+    '''A method for move ordering. An heuristic to asigne score to moves to
+    search probable best moves at first, so that search is faster.'''
 
     score = 0
     
-    if move & 0b_1_111_000_0000000_0000000 :
+    if move & 0b_1_111_000_0000000_0000000 : # If the move is a capture move
+        # Apply MVV-LVA scoring. The idea is to say that taking a valuable piece
+        # with a smaller piece (like PxQ) is probably better than taking a
+        # smaller piece with a valuable one (like QxP).
         if move & 0b_1_000_000_0000000_0000000 : # ep
             return 105 # PxP
         return MVV_LLA[((move >> 17) & 0b_111)-1]\
             [piece_type(board.board[(move >> 7) & 0b_1111111])-1]
 
+    # Else if the move is not a capture move, let's simply use Killer Moves and
+    # History Heuristic
     if killers[ply][0] == move :
         score += 9000
     elif killers[ply][1] == move :
@@ -85,6 +103,7 @@ def score_move(move: int, board: Board, ply: int) :
     return score
 
 def ordering(board: Board, ply: int, moves) -> list :
+    '''A move ordering method. See score_move()'''
     moves = [(move, score_move(move, board, ply)) for move in moves]
     move_list = sorted(moves, key=lambda k: k[1], reverse=True)
     move_list = [move[0] for move in move_list]
@@ -93,9 +112,12 @@ def ordering(board: Board, ply: int, moves) -> list :
 class Search :
 
     def __init__(self, board: Board, depth: int) -> None :
+        '''The search class'''
+
         self.board = board
         self.depth = depth
         self.nodes = 0
+        # PV store uses a triangular PV table
         self.pv = list(range(int((self.depth*self.depth + self.depth)/2)+1))
         self.ply = 0
 
@@ -103,6 +125,7 @@ class Search :
                   beta: int=mateValue, mate: int=mateValue,
                   pvIndex: int=0, storePV: bool=True,
                   checkFlag: int=0) -> int :
+        '''Principal Variation Search'''
         
         global history
         global killers
@@ -126,6 +149,7 @@ class Search :
                 return val
 
         if depth <= 0 :
+            # if depth is lower than 0, just do a quiescence search
             self.ply += 1
             val =  self.Quiescent(alpha, beta, mate-1)
             RecordHash(self.board, depth, val, hashEXACT, hash_)
@@ -141,6 +165,10 @@ class Search :
             isCheck = self.board.is_check(turn)
         
         # Null move pruning
+        # The idea is that if we don't play and our position is still good for
+        # us if our opponent plays, there is no needing to see what's happends
+        # if we play since it will probably be good for us. This is a bad idea
+        # in zugzwang.
         if not (isCheck  or storePV) :
             self.ply += 1
             self.board.push(NONE) # make a null move
@@ -172,9 +200,12 @@ class Search :
 
 
             if fFoundPv :
+                # If we found the PV, no need to do a full-window search
                 val = -self.pvSearch(depth-1, -alpha-1, -alpha, mate-1, 0,
                                      False, 0)
                 if val > alpha and val < beta :
+                    # If it appears that we found a better move than the
+                    # previous PV one, do a normal re-search
                     val = -self.pvSearch(depth-1, -beta, -alpha, mate-1,
                                          pvNextIndex, storePV, 0)
             else :
@@ -183,9 +214,14 @@ class Search :
 
             self.board.pop(move)
 
-            if val >= beta :
+            if val >= beta : # beta cutoff
                 RecordHash(self.board, depth, beta, hashBETA, hash_)
                 if not move & 0b_1_111_000_0000000_0000000 :
+                    # If the move is not a capture one, let's store it as a
+                    # killer move. The idea is that if this move create a beta
+                    # cutoff now, it can also create a beta cutoff on other
+                    # positions, so we could search this move first to create
+                    # beta cutoffs and save time.
                     killers[self.ply][1] = killers[self.ply][0]
                     killers[self.ply][0] = move
                 self.ply -= 1
@@ -196,6 +232,11 @@ class Search :
                 alpha = val
                 fFoundPv = True
                 if not move & 0b_1_111_000_0000000_0000000 :
+                    # If the move is not a capture move, let's update history
+                    # heuristics. The idea is that if this move is the best on
+                    # this position, it could also be the best on others
+                    # positions, and searching bests moves first saves time in
+                    # search.
                     history[int(self.board.turn)]\
                         [(move & 0b_1111111_0000000) >> 7]\
                             [move & 0b_1111111] += depth ** 2
@@ -215,16 +256,20 @@ class Search :
         return alpha
 
     def Quiescent(self, alpha: int, beta: int, mate: int=mateValue) -> int :
+        '''Quiescence search : when search reaches its depth limit, we need to
+        be sure to not miss tactics before calling evaluation.'''
 
         turn = WHITE if self.board.turn else BLACK
         self.nodes += 1
         self.ply += 1
 
         if self.board.is_check(turn) :
+            # Check-evaders extension
             val = self.pvSearch(1, alpha, beta, mate-1, 0, False, -1)
             self.ply -= 1
             return val
         
+        # stand pat pruning
         val = evaluate(self.board)
         if val >= beta :
             self.ply -= 1
@@ -251,4 +296,5 @@ class Search :
             if val > alpha :
                 alpha = val
         self.ply -= 1
+
         return alpha
