@@ -26,6 +26,17 @@ history = [
 ]
 killers = [[NONE, NONE] for _ in range(MAX_PLY)]
 
+# MVV_LLA[attacker][victim]]
+MVV_LLA = [
+    # Victim      K    Q    R    B    N    P    / Attacker
+                [600, 500, 400, 300, 200, 100], #    K
+                [601, 501, 401, 301, 201, 101], #    Q
+                [602, 502, 402, 302, 202, 102], #    R
+                [603, 503, 403, 303, 203, 103], #    B
+                [604, 504, 404, 304, 204, 104], #    N
+                [605, 505, 405, 305, 205, 105], #    P
+]
+
 def ProbeHash(board: Board, depth: int, alpha: int, beta: int,
               hash_=False) -> int :
 
@@ -54,20 +65,27 @@ def RecordHash(board: Board, depth: int, val: int, flag: int,
     entry.depth = depth
     tt[hash_ % ttSIZE] = entry
 
-def score_move(move, board, ply: int) :
+def score_move(move: int, board: Board, ply: int) :
+
     score = 0
-    if not move & 0b_1_111_000_0000000_0000000 :
-        if killers[ply][0] == move :
-            score += 9000
-        elif killers[ply][1] == move :
-            score += 8000
-        score +=  history[int(board.turn)][(move & 0b_1111111_0000000) >> 7]\
-                [move & 0b_1111111]
+    
+    if move & 0b_1_111_000_0000000_0000000 :
+        if move & 0b_1_000_000_0000000_0000000 : # ep
+            return 105 # PxP
+        return MVV_LLA[((move >> 17) & 0b_111)-1]\
+            [piece_type(board.board[(move >> 7) & 0b_1111111])-1]
+
+    if killers[ply][0] == move :
+        score += 9000
+    elif killers[ply][1] == move :
+        score += 8000
+    score +=  history[int(board.turn)][(move & 0b_1111111_0000000) >> 7]\
+            [move & 0b_1111111]
+
     return score
 
-def ordering(board: Board, ply: int) -> list :
-    moves = [(move, score_move(move, board, ply)) for move in
-             board.genPseudoLegalMoves()]
+def ordering(board: Board, ply: int, moves) -> list :
+    moves = [(move, score_move(move, board, ply)) for move in moves]
     move_list = sorted(moves, key=lambda k: k[1], reverse=True)
     move_list = [move[0] for move in move_list]
     return move_list
@@ -141,7 +159,8 @@ class Search :
         pvNextIndex = pvIndex + depth
         
         self.ply += 1
-        for move in ordering(self.board, self.ply) :
+        for move in ordering(self.board, self.ply,
+                             self.board.genPseudoLegalMoves()) :
             self.board.push(move)
             if piece_type(self.board.board[move & 0b_1111111]) == KING :
                 pass # As king moves are always legal in the way we generate
@@ -213,7 +232,8 @@ class Search :
         if val > alpha :
             alpha = val
 
-        for move in self.board.genPseudoLegalCaptures() :
+        for move in ordering(self.board, self.ply,
+                             self.board.genPseudoLegalCaptures()) :
             self.board.push(move)
             if piece_type(self.board.board[move & 0b_1111111]) == KING :
                 pass # As king moves are always legal in the way we generate

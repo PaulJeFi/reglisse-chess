@@ -30,7 +30,9 @@ It currently has the following features :
     - [Quiescence Search](https://www.chessprogramming.org/Quiescence_Search)
         - [check extensions](https://www.chessprogramming.org/Check_Extensions) (check-evaders for the moment)
     - [Move Orderning](https://www.chessprogramming.org/Move_Ordering)
+        - [MVV LVA](https://www.chessprogramming.org/MVV-LVA)
         - [History Heuristic](https://www.chessprogramming.org/History_Heuristic)
+        - [Killer Moves Heuristic](https://www.chessprogramming.org/Killer_Heuristic)
 - [UCI](./engine-interface.md) interface (not fully supported)
 
 ## Why _Réglisse_ ?

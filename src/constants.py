@@ -104,7 +104,7 @@ QUEEN  = 0b_010
 ROOK   = 0b_011
 BISHOP = 0b_100
 KNIGHT = 0b_101
-PAWN   = 0b_111
+PAWN   = 0b_110
 
 # Pieces vectors
 ROOK_VECTOR     = [ -1, -10,   1,  10]
@@ -175,7 +175,7 @@ def piece_color(piece: int) -> int :
     return piece & (WHITE | BLACK)
 
 def piece_type(piece: int) -> int :
-    return piece & PAWN
+    return piece & 0b_111
 
 def check_number(integer: int, digit: int, place: int) -> bool :
     '''Used to know some particularities about number ( like same rank or same
@@ -184,14 +184,14 @@ def check_number(integer: int, digit: int, place: int) -> bool :
     # https://stackoverflow.com/questions/72713436/how-to-check-a-specific-digit
     # -in-integer-python/72713495#72713495
 
-    while place > 1:
+    while place > 1 :
         integer = integer // 10
         place -= 1
 
-    if integer == 0:
+    if integer == 0 :
         return False
 
-    if integer % 10 == digit:
+    if integer % 10 == digit :
         return True
-    else:
+    else :
         return False
