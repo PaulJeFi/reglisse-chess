@@ -11,16 +11,18 @@ R = 2               # R is the depth reduction when we do a null-move search.
 ttSIZE = 10_000_000 # The size of the transposition table (TT).
 
 # Some hash flag used in TT :
-hashEXACT = 0
-hashALPHA = 1
-hashBETA  = 2
-valUNKNOW = 1       # impossible to have eval = 1 in practise
+hashEXACT    = 0
+hashALPHA    = 1
+hashBETA     = 2
+valUNKNOW    = 1.5       # impossible to have eval = 1.5 in practise
+hash_NO_NULL = 2.5       # impossible to have eval = 2.5 in practise
 
 MAX_PLY   = 1024    # ply are used in Killer Moves. See later.
 
 class Entry :
     '''A class that represents a TT entry'''
     key = 0
+    noNull = False
     depth: int
     value: int
     flag: int
@@ -54,6 +56,8 @@ def ProbeHash(board: Board, depth: int, alpha: int, beta: int,
         hash_ = zobrist.hash(board)
     entry = tt[hash_ % ttSIZE]
     if entry.key == hash_ and entry.depth >= depth :
+        if entry.flag == hash_NO_NULL :
+            return hash_NO_NULL
         if entry.flag == hashEXACT :
             return entry.value
         if entry.flag == hashALPHA and entry.value <= alpha :
@@ -140,12 +144,15 @@ class Search :
         hashf = hashALPHA
         turn = WHITE if self.board.turn else BLACK
         hash_ = zobrist.hash(self.board)
+        no_null = False
 
         if (not beta - alpha > 1) or (checkFlag == -1) : # Probe TT if node is
                                                          # not a PV node
             # If checkFlag = -1 we know this is a QS-node
             val = ProbeHash(self.board, depth, alpha, beta, hash_)
-            if val != valUNKNOW :
+            if val == hash_NO_NULL :
+                no_null = True
+            elif val != valUNKNOW :
                 return val
 
         if depth <= 0 :
@@ -169,7 +176,7 @@ class Search :
         # us if our opponent plays, there is no needing to see what's happends
         # if we play since it will probably be good for us. This is a bad idea
         # in zugzwang.
-        if not (isCheck  or storePV) :
+        if not (isCheck  or storePV or no_null) :
             self.ply += 1
             self.board.push(NONE) # make a null move
             val = -self.pvSearch(depth-1-R, -beta, -beta+1, mate, storePV=False,
@@ -179,6 +186,10 @@ class Search :
             if val >= beta :
                 RecordHash(self.board, depth, beta, hashBETA, hash_)
                 return beta
+        # If null move pruning fails, we strore this information so we will no
+        # loose time trying null move pruning in this position at same or lower
+        # depth in the future.
+        RecordHash(self.board, depth, NONE, hash_NO_NULL, hash_)
 
         legal = False
         # PV store initialisation :
