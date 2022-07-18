@@ -12,3 +12,4 @@ In this file I will thank people without whom this project would not be possible
 - Théodora, a great friend who encouraged me during this project and let me use her cat's name
 - Sebastian Lague for his [beautifull video about chessprogramming](https://www.youtube.com/watch?v=U4ogK0MIzqk)
 - Maksim Korzh, for having a whole [youtube chanel about chessprogramming](https://www.youtube.com/channel/UCB9-prLkPwgvlKKqDgXhsMQ)
+- The Stockfish Team on discord, for answering to my questions about chess programming.
