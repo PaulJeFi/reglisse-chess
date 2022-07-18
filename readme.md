@@ -1,6 +1,6 @@
 # Réglisse
 
-<img src="./logo/logo.svg" width="300" height="300">
+<img src="./logo/logo.svg" width="450" height="450">
 
 Réglisse is a chess engine written from scratch in Python.\
 Réglisse uses [mailbox](https://www.chessprogramming.org/Mailbox) and the idea behind it was simplicity and not playing strenght. I hope the code will be clear and well commented for those who want to understand how a chess engine works.
