@@ -285,6 +285,13 @@ class Search :
         if val >= beta :
             self.ply -= 1
             return beta
+
+        # delta pruning
+        delta = 900 # queen value
+        if val < alpha - delta :
+            self.ply -= 1
+            return alpha
+
         if val > alpha :
             alpha = val
 
