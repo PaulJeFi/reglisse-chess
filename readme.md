@@ -31,6 +31,7 @@ It currently has the following features :
     - [mate distance pruning](https://www.chessprogramming.org/Mate_Distance_Pruning)
     - [Quiescence Search](https://www.chessprogramming.org/Quiescence_Search)
         - [check extensions](https://www.chessprogramming.org/Check_Extensions) (check-evaders for the moment)
+        - [delta pruning](https://www.chessprogramming.org/Delta_Pruning)
     - [Move Orderning](https://www.chessprogramming.org/Move_Ordering)
         - [MVV LVA](https://www.chessprogramming.org/MVV-LVA)
         - [History Heuristic](https://www.chessprogramming.org/History_Heuristic)

@@ -265,13 +265,13 @@ class Board :
 
         # Caslte move :
         if abs(from_ - to_) == 2 and piece_type(self.board[from_]) == KING :
-            if to_ == 97 : # White long castle
+            if to_ == 97 : # White short castle
                 self.board[98] = WHITE | ROOK
                 self.board[96] = EMPTY
             elif to_ == 93 : # White long castle
                 self.board[91] = WHITE | ROOK
                 self.board[94] = EMPTY
-            elif to_ == 27 : # Black long castle
+            elif to_ == 27 : # Black short castle
                 self.board[28] = BLACK | ROOK
                 self.board[26] = EMPTY
             elif to_ == 23 : # Black long castle
