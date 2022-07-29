@@ -171,28 +171,6 @@ class Search :
         else :
             isCheck = self.board.is_check(turn)
 
-        # Null move pruning (double null move pruning)
-        # The idea is that if we don't play and our position is still good for
-        # us if our opponent plays, there is no needing to see what's happends
-        # if we play since it will probably be good for us. This is a bad idea
-        # in zugzwang.
-        if not (isCheck  or storePV or no_null) and \
-            (len(self.board.move_stack) >= 2 and self.board.move_stack[-2]) :
-        
-            self.ply += 1
-            self.board.push(NONE) # make a null move
-            val = -self.pvSearch(depth-1-R, -beta, -beta+1, mate,
-                                    storePV=False, checkFlag=1)
-            self.board.pop(NONE)
-            self.ply -= 1
-            if val >= beta :
-                RecordHash(self.board, depth, beta, hashBETA, hash_)
-                return beta
-            # If null move pruning fails, we strore this information so we will
-            # no loose time trying null move pruning in this position at same or
-            # lower depth in the future.
-            RecordHash(self.board, depth, NONE, hash_NO_NULL, hash_)
-
         # Razoring (old pruning method, today quite unused because risky ...)
         value = evaluate(self.board) + 125
         if (value < beta) and not (isCheck or storePV) :
@@ -220,6 +198,28 @@ class Search :
                 and (len(self.board.genLegal())) and (val < alpha - 320) :
             RecordHash(self.board, depth, alpha, hashf, hash_)
             return alpha
+
+        # Null move pruning (double null move pruning)
+        # The idea is that if we don't play and our position is still good for
+        # us if our opponent plays, there is no needing to see what's happends
+        # if we play since it will probably be good for us. This is a bad idea
+        # in zugzwang.
+        if not (isCheck  or storePV or no_null) and \
+            (len(self.board.move_stack) >= 2 and self.board.move_stack[-2]) :
+        
+            self.ply += 1
+            self.board.push(NONE) # make a null move
+            val = -self.pvSearch(depth-1-R, -beta, -beta+1, mate,
+                                    storePV=False, checkFlag=1)
+            self.board.pop(NONE)
+            self.ply -= 1
+            if val >= beta :
+                RecordHash(self.board, depth, beta, hashBETA, hash_)
+                return beta
+            # If null move pruning fails, we strore this information so we will
+            # no loose time trying null move pruning in this position at same or
+            # lower depth in the future.
+            RecordHash(self.board, depth, NONE, hash_NO_NULL, hash_)
 
         legal = 0
         # PV store initialisation :
