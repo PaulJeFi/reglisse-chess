@@ -27,11 +27,16 @@ It currently has the following features :
     - [TT](https://www.chessprogramming.org/Transposition_Table)
         - [Zobrist Hashing](https://www.chessprogramming.org/Zobrist_Hashing)
     - [Null Move Pruning](https://www.chessprogramming.org/Null_Move_Pruning)
+        - [Double Null Move](https://www.chessprogramming.org/Double_Null_Move)
+    - [Razoring](https://www.chessprogramming.org/Razoring#LimitedRazoring)
+    - [LMR](https://www.chessprogramming.org/Late_Move_Reductions)
+    - [Futility Pruning](https://www.chessprogramming.org/Futility_Pruning)
     - [iterative deepening](https://www.chessprogramming.org/Iterative_Deepening)
     - [mate distance pruning](https://www.chessprogramming.org/Mate_Distance_Pruning)
     - [Quiescence Search](https://www.chessprogramming.org/Quiescence_Search)
         - [check extensions](https://www.chessprogramming.org/Check_Extensions) (check-evaders for the moment)
         - [delta pruning](https://www.chessprogramming.org/Delta_Pruning)
+        - Hard cutoff (to prevent [search explosion](https://www.chessprogramming.org/Search_Explosion))
     - [Move Orderning](https://www.chessprogramming.org/Move_Ordering)
         - [MVV LVA](https://www.chessprogramming.org/MVV-LVA)
         - [History Heuristic](https://www.chessprogramming.org/History_Heuristic)
@@ -42,7 +47,7 @@ It currently has the following features :
 As for [Ramsès-Chess](https://github.com/PaulJeFi/ramses-chess), I took a cat name. Réglisse is one of my friend's cat.
 
 ## Special Thanks
-See the [thanks file](./THANKS.md) to see people who made this project possible.
+Take a look at the [thanks file](./THANKS.md) to see people who made this project possible.
 
 ## LICENSE
 See the [license file](./LICENSE.txt) to know more about legal stuffs.
@@ -53,6 +58,6 @@ Réglisse supports some basics commands of the [UCI interface](./engine-interfac
    - ```go move``` : make the engine search and play its move on the board
    - ```d``` : dysplays the [FEN](https://www.chessprogramming.org/Forsyth-Edwards_Notation) of the current position
 
-To run the UCI interface, run the file [```uci.py```](./src/uci.py).
+To run the UCI interface, just run the file [```uci.py```](./src/uci.py).
 
 I think a good depth, between time and playing strength, is 3.

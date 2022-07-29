@@ -170,45 +170,74 @@ class Search :
             isCheck = False
         else :
             isCheck = self.board.is_check(turn)
-        
-        # Null move pruning
+
+        # Null move pruning (double null move pruning)
         # The idea is that if we don't play and our position is still good for
         # us if our opponent plays, there is no needing to see what's happends
         # if we play since it will probably be good for us. This is a bad idea
         # in zugzwang.
-        if not (isCheck  or storePV or no_null) :
+        if not (isCheck  or storePV or no_null) and \
+            (len(self.board.move_stack) >= 2 and self.board.move_stack[-2]) :
+        
             self.ply += 1
             self.board.push(NONE) # make a null move
-            val = -self.pvSearch(depth-1-R, -beta, -beta+1, mate, storePV=False,
-                                 checkFlag=1)
+            val = -self.pvSearch(depth-1-R, -beta, -beta+1, mate,
+                                    storePV=False, checkFlag=1)
             self.board.pop(NONE)
             self.ply -= 1
             if val >= beta :
                 RecordHash(self.board, depth, beta, hashBETA, hash_)
                 return beta
-        # If null move pruning fails, we strore this information so we will no
-        # loose time trying null move pruning in this position at same or lower
-        # depth in the future.
-        RecordHash(self.board, depth, NONE, hash_NO_NULL, hash_)
+            # If null move pruning fails, we strore this information so we will
+            # no loose time trying null move pruning in this position at same or
+            # lower depth in the future.
+            RecordHash(self.board, depth, NONE, hash_NO_NULL, hash_)
 
-        legal = False
+        # Razoring (old pruning method, today quite unused because risky ...)
+        value = evaluate(self.board) + 125
+        if (value < beta) and not (isCheck or storePV) :
+            if (depth == 1) :
+                self.ply += 1
+                new_value = self.Quiescent(alpha, beta, mate-1)
+                self.ply -= 1
+                value = max(new_value, value)
+                RecordHash(self.board, depth, value, hashf, hash_)
+                return value
+            value += 175
+            if (value < beta and depth <= 3) :
+                self.ply += 1
+                new_value = self.Quiescent(alpha, beta, mate-1)
+                self.ply -= 1
+                if (new_value < beta) :
+                    value = max(new_value, value)
+                    RecordHash(self.board, depth, value, hashf, hash_) 
+                    return value
+
+        # Futility pruning : at pre fontier nodes (depth = 1), if the score plus
+        # a bishop value is not better than alpha, simply return alpha.
+        if (depth <= 1) and (not (isCheck  or storePV)) and \
+            (not (self.board.move_stack[-1] & 0b_1_111_111_0000000_0000000)) \
+                and (len(self.board.genLegal())) and (val < alpha - 320) :
+            RecordHash(self.board, depth, alpha, hashf, hash_)
+            return alpha
+
+        legal = 0
         # PV store initialisation :
         if storePV :
             self.pv[pvIndex] = 0 # no pv yet
         pvNextIndex = pvIndex + depth
-        
+
         self.ply += 1
         for move in ordering(self.board, self.ply,
                              self.board.genPseudoLegalMoves()) :
             self.board.push(move)
-            if piece_type(self.board.board[move & 0b_1111111]) == KING :
-                pass # As king moves are always legal in the way we generate
+            #if piece_type(self.board.board[move & 0b_1111111]) == KING :
+            #    pass # As king moves are always legal in the way we generate
                      # king moves
             if self.board.is_check(turn) : # If the move is not a legal move
                 self.board.pop(move)
                 continue
-            legal = True # The move is a legal move
-
+            legal += 1 # The move is a legal move
 
             if fFoundPv :
                 # If we found the PV, no need to do a full-window search
@@ -255,11 +284,17 @@ class Search :
                 if storePV :
                     self.pv[pvIndex] = move
 
+            # Late move reduction. With move ordering, latest moves are probably
+            # the worste. So decrease a little bit depth each time a legal move
+            # is searched.
+            if not (isCheck  or storePV) and legal :
+                depth -= 0.2
+
         # End of line (and game) :
         if not legal :
+            self.ply -= 1
             if isCheck :
                 return -mate
-            self.ply -= 1
             return 0 # If there are no legal move and no check, it's a stalemate
 
         RecordHash(self.board, depth, alpha, hashf, hash_)
@@ -294,6 +329,11 @@ class Search :
 
         if val > alpha :
             alpha = val
+
+        # hard cutoff
+        if (self.depth*2 < self.ply - self.depth*2) :
+            self.ply -= 1
+            return val
 
         for move in ordering(self.board, self.ply,
                              self.board.genPseudoLegalCaptures()) :
