@@ -338,9 +338,9 @@ class Search :
         for move in ordering(self.board, self.ply,
                              self.board.genPseudoLegalCaptures()) :
             self.board.push(move)
-            if piece_type(self.board.board[move & 0b_1111111]) == KING :
-                pass # As king moves are always legal in the way we generate
-                     # king moves
+            #if piece_type(self.board.board[move & 0b_1111111]) == KING :
+            #    pass # As king moves are always legal in the way we generate
+            #         # king moves
             if self.board.is_check(turn) : # If the move is not a legal move
                 self.board.pop(move)
                 continue

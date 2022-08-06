@@ -168,7 +168,7 @@ def str_move(move: int) -> str :
     )
 
 def opp_color(color: int) -> int :
-    '''Returns the oppisite color'''
+    '''Returns the opposite color'''
     return (WHITE | BLACK) ^ color
 
 def piece_color(piece: int) -> int :
