@@ -35,6 +35,17 @@ history = [
 # Killer move store :
 killers = [[NONE, NONE] for _ in range(MAX_PLY)]
 
+def reset_tables() :
+    global tt
+    global history
+    global killers
+
+    tt = [Entry() for _ in range(ttSIZE)]
+    history = [
+        [[NONE for ___ in range(98+1)] for __ in range(98+1)] for _ in range(2)
+    ]
+    killers = [[NONE, NONE] for _ in range(MAX_PLY)]
+
 # MVV_LLA[attacker][victim]]
 MVV_LLA = [
     # Victim      K    Q    R    B    N    P    / Attacker

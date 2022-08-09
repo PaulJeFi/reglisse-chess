@@ -12,13 +12,14 @@ def index_pv(ply: int, depth: int) -> int :
         return 0 
     return index_pv(ply-1, depth) + depth - (ply-1)
 
-def iterative_deepening(board: Board, depth: int) -> tuple :
+def iterative_deepening(board: Board, depth: int, use_book: bool=True) -> tuple :
 
     # Search in the book if possible
-    move = book.move_from_book(board)
-    if move :
-        print(f"bestmove {str_move(move)}")
-        return move, 0
+    if use_book :
+        move = book.move_from_book(board)
+        if move :
+            print(f"bestmove {str_move(move)}")
+            return move, 0
 
     # Current time at starting
     start_time = time.time()

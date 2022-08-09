@@ -1,9 +1,12 @@
 from board import Board
-from iterative_deep import iterative_deepening
+import iterative_deep
 
 def main() -> None :
 
     board = Board()
+    book = True
+
+    print('Réglisse by Paul JF')
 
     while True :
 
@@ -12,13 +15,17 @@ def main() -> None :
         try :
             
             if inp[0] == 'uci' :
-                print('id name Réglisse\nid author Paul JF\nuciok')
+                print('id name Réglisse\nid author Paul JF\n')
+                print('option name Clear Tables type button')
+                print('option name OwnBook type check default true')
+                print('uciok')
 
             elif inp[0] == 'isready' :
                 print('readyok')
 
             elif inp[0] == 'ucinewgame' :
                 board = Board()
+                iterative_deep.search.reset_tables()
 
             elif inp[0] == 'd' :
                 print(board.fen())
@@ -61,7 +68,8 @@ def main() -> None :
                 if 'move' in inp :
                     MOVE = True
 
-                move, evalu = iterative_deepening(board, depth)
+                move, evalu = iterative_deep.iterative_deepening(board, depth,
+                                                                 book)
                 if MOVE :
                     board.push(move)
 
@@ -69,7 +77,15 @@ def main() -> None :
                 move = board.readMove(inp[1])
                 if move != None :
                     board.push(move)
-
+            
+            elif inp[0] == 'setoption' and inp[1] == 'name':
+                if 'Clear' in inp and 'Tables' in inp :
+                    iterative_deep.search.reset_tables()
+                if 'OwnBook' in inp and 'value' in inp :
+                    if 'true' in inp :
+                        book = True
+                    if 'false' in inp :
+                        book = False
 
         except IndexError :
             pass

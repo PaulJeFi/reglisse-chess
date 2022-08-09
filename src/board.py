@@ -619,7 +619,7 @@ class Board :
 
         # Let's iterate over each square
         for square in mailbox64 :
-            # A piece can move only is its color is the color side to move
+            # A piece can move only if its color is the color side to move
             if self.board[square] & color :
 
                 piece = self.board[square] ^ color # Extracting the piece type
