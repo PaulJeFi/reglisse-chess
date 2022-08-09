@@ -1,6 +1,30 @@
 from board import Board
 import iterative_deep
 
+def pretty_fen(fen) :
+    FEN = ''
+    for i in ''.join(fen.replace('/', '').split(' ')[0]) :
+        if i.isdigit() :
+            FEN += int(i) * ' '
+        else :
+            FEN += i
+    print(FEN)
+
+    board = ' +---+---+---+---+---+---+---+---+'
+    count = 0
+    for i in range(8) :
+        board += '\n'
+        for j in range(8) :
+            print(i + j)
+            board += ' | ' + FEN[count]
+            count += 1
+        board += ' | ' + str(8-i)
+        board += '\n +---+---+---+---+---+---+---+---+'
+    board += '\n   a   b   c   d   e   f   g   h'
+    board += '\n\nFen : ' + fen
+
+    return board
+
 def main() -> None :
 
     board = Board()
@@ -28,7 +52,9 @@ def main() -> None :
                 iterative_deep.search.reset_tables()
 
             elif inp[0] == 'd' :
-                print(board.fen())
+                print()
+                print(pretty_fen(board.fen()))
+                print(f'Key : {hex(iterative_deep.search.zobrist.hash(board))[2:].upper()}')
 
             elif inp[0] == 'quit' :
                 break
