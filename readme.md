@@ -17,8 +17,8 @@ It currently has the following features :
     - [PSQT](https://www.chessprogramming.org/Piece-Square_Tables) eval
     - [material balance](https://www.chessprogramming.org/Material)
     - [tapered eval](https://www.chessprogramming.org/Tapered_Eval)
-    - [space control eval](https://www.chessprogramming.org/Space)
-    - [bishop pair](https://www.chessprogramming.org/Bishop_Pair)
+    - [space control eval](https://www.chessprogramming.org/Space) _to be readded_
+    - [bishop pair](https://www.chessprogramming.org/Bishop_Pair) _to be readded_
 - [Search](https://www.chessprogramming.org/Search)
     - [PVS](https://www.chessprogramming.org/Principal_Variation_Search)
     - [ZWS](https://www.chessprogramming.org/Principal_Variation_Search)(in PVS)
@@ -56,7 +56,7 @@ See the [license file](./LICENSE.txt) to know more about legal stuffs.
 Réglisse supports some basics commands of the [UCI interface](./engine-interface.md). Three more commands exist :
    - ```move [move]``` : make the move (in UCI format) on the board
    - ```go move``` : make the engine search and play its move on the board
-   - ```d``` : dysplays the [FEN](https://www.chessprogramming.org/Forsyth-Edwards_Notation) of the current position
+   - ```d``` : dysplays the board, the [FEN](https://www.chessprogramming.org/Forsyth-Edwards_Notation) and the [hash key](https://www.chessprogramming.org/Zobrist_Hashing) of the current position
 
 To run the UCI interface, just run the file [```uci.py```](./src/uci.py).
 

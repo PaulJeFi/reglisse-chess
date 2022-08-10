@@ -17,9 +17,7 @@ def perft(board: Board, depth: int) -> int :
     for move in board.genPseudoLegalMoves() :
         turn = WHITE if board.turn else BLACK
         board.push(move)
-        if piece_type(board.board[move & 0b_1111111]) == KING :
-            nodes += perft(board, depth-1)
-        elif not board.is_check(turn) :
+        if not board.is_check(turn) :
             nodes += perft(board, depth-1)
         board.pop(move)
     return nodes
@@ -63,9 +61,6 @@ def perft_z(board: Board, depth: int) -> int :
         if key in keys :
             board.pop(move)
             return keys[(key, depth)]
-        elif piece_type(board.board[move & 0b_1111111]) == KING :
-            keys[(key, depth)] = perft_z(board, depth-1)
-            nodes += keys[(key, depth)]
         elif not board.is_check(turn) :
             keys[(key, depth)] = perft_z(board, depth-1)
             nodes += keys[(key, depth)]

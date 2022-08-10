@@ -263,7 +263,7 @@ class Board :
         # Else (ie no capture move), TO square is EMPTY
         else :  self.board[to_] = EMPTY
 
-        # Caslte move :
+        # Castle move :
         if abs(from_ - to_) == 2 and piece_type(self.board[from_]) == KING :
             if to_ == 97 : # White short castle
                 self.board[98] = WHITE | ROOK
@@ -856,7 +856,7 @@ class Board :
                     opp = opp_color(color)
 
                     # Nomal king moves : remenber, king can't capture with a
-                    # castling move
+                    # castling move.
                     for offset in [*BISHOP_VECTOR, *ROOK_VECTOR] :
                         to_ = square + offset
                         if self.board[to_] != OFF_BOARD and \
