@@ -586,8 +586,8 @@ class Board :
                 ))
             if (self.castling_rights[-1] & 0b_0010) and self.board[92] == EMPTY\
                 and self.board[93] == EMPTY and self.board[94] == EMPTY  and \
-                    not self.attack(94, opp) and not \
-                        self.attack(93, opp) : # long caslte allowed
+                    self.board[92] == EMPTY and not self.attack(94, opp) and \
+                        not self.attack(93, opp) : # long caslte allowed
                 moves.append(encode_move(
                     square,
                     93
@@ -603,8 +603,8 @@ class Board :
                 ))
             if (self.castling_rights[-1] & 0b_1000) and self.board[22] == EMPTY\
                 and self.board[23] == EMPTY and self.board[24] == EMPTY  and \
-                    not self.attack(24, opp) and not \
-                        self.attack(23, opp) : # long caslte allowed
+                    self.board[22] == EMPTY and not self.attack(24, opp) and \
+                        not self.attack(23, opp) : # long caslte allowed
                 moves.append(encode_move(
                     square,
                     23

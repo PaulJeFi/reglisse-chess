@@ -141,7 +141,7 @@ eg_king_table = [
     -53, -34, -21, -11, -28, -14, -24, -43
 ]
 
-mg_table = [
+mg_tot_table = [
     mg_pawn_table,
     mg_knight_table,
     mg_bishop_table,
@@ -150,7 +150,7 @@ mg_table = [
     mg_king_table, []
 ][::-1]
 
-eg_table = [
+eg_tot_table = [
     eg_pawn_table,
     eg_knight_table,
     eg_bishop_table,
@@ -183,13 +183,13 @@ eg_table = [[0 for _ in range(64)] for __ in range(12)]
 for piece in [PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING] :
         for sq in range(64) :
             mg_table[PIECES[piece | WHITE]][sq] = mg_value[piece] +\
-                mg_table[piece][sq]
+                mg_tot_table[piece][sq]
             mg_table[PIECES[piece | BLACK]][sq] = mg_value[piece] +\
-                mg_table[piece][FLIP(sq)]
+                mg_tot_table[piece][FLIP(sq)]
             eg_table[PIECES[piece | WHITE]][sq] = eg_value[piece] +\
-                eg_table[piece][sq]
+                eg_tot_table[piece][sq]
             eg_table[PIECES[piece | BLACK]][sq] = eg_value[piece] +\
-                eg_table[piece][FLIP(sq)]
+                eg_tot_table[piece][FLIP(sq)]
 
 def evaluate(board: Board) -> int :
 
