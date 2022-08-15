@@ -2,7 +2,7 @@
 
 <img src="./logo/logo.svg" width="300" height="300">
 
-Réglisse is a chess engine written from scratch in Python.\
+Réglisse is a chess engine written from scratch in Python and JavaScript.\
 Réglisse uses [mailbox](https://www.chessprogramming.org/Mailbox) and the idea behind it was simplicity and not playing strenght. I hope the code will be clear and well commented for those who want to understand how a chess engine works.
 
 
@@ -55,9 +55,11 @@ See the [license file](./LICENSE.txt) to know more about legal stuffs.
 ## How to use
 Réglisse supports some basics commands of the [UCI interface](./engine-interface.md). Three more commands exist :
    - ```move [move]``` : make the move (in UCI format) on the board
+   - ```undo``` : undo the last move
    - ```go move``` : make the engine search and play its move on the board
-   - ```d``` : dysplays the board, the [FEN](https://www.chessprogramming.org/Forsyth-Edwards_Notation) and the [hash key](https://www.chessprogramming.org/Zobrist_Hashing) of the current position
+   - ```d``` : displays the board, the [FEN](https://www.chessprogramming.org/Forsyth-Edwards_Notation) and the [hash key](https://www.chessprogramming.org/Zobrist_Hashing) of the current position
+   - ```eval``` : displays the static evaluation of the current position
 
-To run the UCI interface, just run the file [```uci.py```](./src/uci.py).
+To run the UCI interface, just run the file [```uci.py```](./src/Python/uci.py) or [```reglisse.js```](./src/JavaScript/reglisse.js).
 
 I think a good depth, between time and playing strength, is 3.

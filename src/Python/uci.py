@@ -108,6 +108,10 @@ def main() -> None :
                 move = board.readMove(inp[1])
                 if move != None :
                     board.push(move)
+
+            elif inp[0] == 'undo' :
+                if len(board.move_stack) >= 1 :
+                    board.pop(board.move_stack[-1])
             
             elif inp[0] == 'setoption' and inp[1] == 'name':
                 if 'Clear' in inp and 'Tables' in inp :
