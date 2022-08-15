@@ -8,14 +8,12 @@ def pretty_fen(fen) :
             FEN += int(i) * ' '
         else :
             FEN += i
-    print(FEN)
 
     board = ' +---+---+---+---+---+---+---+---+'
     count = 0
     for i in range(8) :
         board += '\n'
         for j in range(8) :
-            print(i + j)
             board += ' | ' + FEN[count]
             count += 1
         board += ' | ' + str(8-i)
@@ -54,7 +52,14 @@ def main() -> None :
             elif inp[0] == 'd' :
                 print()
                 print(pretty_fen(board.fen()))
-                print(f'Key : {hex(iterative_deep.search.zobrist.hash(board))[2:].upper()}')
+                print('Key : {}'.format(
+                    hex(iterative_deep.search.zobrist.hash(board))[2:].upper()))
+            
+            elif inp[0] == 'eval' :
+                view = 1 if board.turn else -1
+                print('Static eval : {} cp'.format(
+                    iterative_deep.search.evaluate(board) * view
+                ))
 
             elif inp[0] == 'quit' :
                 break

@@ -5,6 +5,12 @@ FLIP = lambda sq : sq ^ 56
 
 mateValue = 100_000_000_000-1
 
+def scale_to_white_view(board, b_score) :
+    if board.turn :
+        return b_score
+    else :
+        return -b_score
+
 # Piece values :
 #            P   N    B    R     Q    K
 mg_value = [82, 337, 365, 477, 1025,  0, EMPTY][::-1]

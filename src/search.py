@@ -46,8 +46,8 @@ def reset_tables() :
     ]
     killers = [[NONE, NONE] for _ in range(MAX_PLY)]
 
-# MVV_LLA[attacker][victim]]
-MVV_LLA = [
+# MVV_LVA[attacker][victim]
+MVV_LVA = [
     # Victim      K    Q    R    B    N    P    / Attacker
                 [600, 500, 400, 300, 200, 100], #    K
                 [601, 501, 401, 301, 201, 101], #    Q
@@ -92,7 +92,7 @@ def RecordHash(board: Board, depth: int, val: int, flag: int,
     tt[hash_ % ttSIZE] = entry
 
 def score_move(move: int, board: Board, ply: int) :
-    '''A method for move ordering. An heuristic to asigne score to moves to
+    '''A method for move ordering. An heuristic to assign score to moves to
     search probable best moves at first, so that search is faster.'''
 
     score = 0
@@ -103,7 +103,7 @@ def score_move(move: int, board: Board, ply: int) :
         # smaller piece with a valuable one (like QxP).
         if move & 0b_1_000_000_0000000_0000000 : # ep
             return 105 # PxP
-        return MVV_LLA[((move >> 17) & 0b_111)-1]\
+        return MVV_LVA[((move >> 17) & 0b_111)-1]\
             [piece_type(board.board[(move >> 7) & 0b_1111111])-1]
 
     # Else if the move is not a capture move, let's simply use Killer Moves and
@@ -134,7 +134,7 @@ class Search :
         self.nodes = 0
         # PV store uses a triangular PV table
         self.pv = list(range(int((self.depth*self.depth + self.depth)/2)+1))
-        self.ply = 0
+        self.ply = len(board.move_stack)
 
     def pvSearch(self, depth: int, alpha: int=-mateValue,
                   beta: int=mateValue, mate: int=mateValue,
@@ -175,7 +175,7 @@ class Search :
             return val
 
         if checkFlag == -1 : # QuiescentSearch calls PVSearch only if board is
-                             # check
+                             # in check
             isCheck = True
         elif checkFlag :
             isCheck = False
@@ -216,7 +216,7 @@ class Search :
         # if we play since it will probably be good for us. This is a bad idea
         # in zugzwang.
         if not (isCheck  or storePV or no_null) and \
-            (len(self.board.move_stack) >= 2 and self.board.move_stack[-2]) :
+            (len(self.board.move_stack) >= 1 and self.board.move_stack[-1]) :
         
             self.ply += 1
             self.board.push(NONE) # make a null move
@@ -234,8 +234,8 @@ class Search :
 
         legal = 0
         # PV store initialisation :
-        if storePV :
-            self.pv[pvIndex] = 0 # no pv yet
+        #if storePV :
+        #    self.pv[pvIndex] = 0 # no pv yet
         pvNextIndex = pvIndex + depth
 
         self.ply += 1
@@ -344,7 +344,7 @@ class Search :
         # hard cutoff
         if (self.depth*2 < self.ply - self.depth*2) :
             self.ply -= 1
-            return val
+            return alpha # or val ?
 
         for move in ordering(self.board, self.ply,
                              self.board.genPseudoLegalCaptures()) :
