@@ -1836,14 +1836,18 @@ class Search {
         this.time_to_search = time;
     };
 
+    
     pvSearch(depth, alpha=-mateValue, beta=mateValue, mate=mateValue, pvIndex=0,
-             storePV=true, checkFlag=0) {
+             storePV=true, checkFlag=0, realdepth=0) {
         // Principal Variation Search
         
         // checkFlag : some infomration about check
         //    . 1 -> no check
         //    . 0 -> unknow
         //    .-1 -> is check
+        if (depth == this.depth) {
+            realdepth = this.depth;
+        };
 
         this.nodes++;
         var fFoundPv = false,
@@ -1939,7 +1943,7 @@ class Search {
             this.ply++;
             this.board.push(NONE); // make a null move
             val = -this.pvSearch(depth-1-R, -beta, -beta+1, mate,
-                storePV=false, checkFlag=1);
+                storePV=false, checkFlag=1, realdepth=realdepth-1);
             this.board.pop(NONE);
             this.ply--;
             if (val >= beta) {
@@ -1954,10 +1958,10 @@ class Search {
 
         var legal = 0;
         // PV store in itialisation :
-        //if (storePV) {
-        //    this.pv[pvIndex] = 0 // no PV yet
-        //};
-        var pvNextIndex = pvIndex + depth;
+        if (storePV) {
+            this.pv[pvIndex] = 0 // no PV yet
+        };
+        var pvNextIndex = pvIndex + realdepth;
 
         this.ply++;
         for (var move of ordering(this.board, this.ply,
@@ -1974,16 +1978,16 @@ class Search {
             if (fFoundPv) {
                 // If we found the PV, no need to do a full-window search
                 val = -this.pvSearch(depth-1, -alpha-1, -alpha, mate-1, 0,
-                    false, 0);
+                    false, 0, realdepth-1);
                 if ((val > alpha) && (val < beta)) {
                     // If it appears that we found a better move than the
                     // previous PV one, do a normal re-search
                     val = -this.pvSearch(depth-1, -beta, -alpha, mate-1,
-                        pvNextIndex, storePV, 0)
+                        pvNextIndex, storePV, 0, realdepth-1)
                 };
             } else {
                 val = -this.pvSearch(depth-1, -beta, -alpha, mate-1,
-                    pvNextIndex, storePV, 0)
+                    pvNextIndex, storePV, 0, realdepth-1);
             };
 
             this.board.pop(move);
