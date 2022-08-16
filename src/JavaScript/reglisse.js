@@ -1836,7 +1836,7 @@ class Search {
         this.time_to_search = time;
     };
 
-    
+
     pvSearch(depth, alpha=-mateValue, beta=mateValue, mate=mateValue, pvIndex=0,
              storePV=true, checkFlag=0, realdepth=0) {
         // Principal Variation Search
@@ -2003,6 +2003,8 @@ class Search {
                     killers[this.ply][1] = killers[this.ply][0];
                     killers[this.ply][0] = move;
                 };
+                this.ply--;
+                return beta;
             };
 
             if (val > alpha) {
@@ -2236,7 +2238,6 @@ function pretty_fen(fen) {
 var board = new Board();
 
 process.stdin.setEncoding('utf-8');
-const { count } = require('console');
 var readline = require('readline');
 var UCI = readline.createInterface({
   input: process.stdin,
