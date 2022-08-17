@@ -2169,8 +2169,8 @@ function iterative_deepening(board, depth=4, time=false) {
         elapsed = (new Date().getTime()) - startTime;
 
         if (!searcher.timeout) {
-            console.log('info depth ' + searcher.depth.toString() + 'score cp '+
-            (view * evaluation).toString() +' nodes ' +
+            console.log('info depth ' + searcher.depth.toString() + ' score cp '
+            + (view * evaluation).toString() +' nodes ' +
             searcher.nodes.toString() + ' time ' + elapsed.toString() + ' nps '
             +((searcher.nodes / ((elapsed-old_elapsed) / 1000)) >> 0).toString()
             + ' pv ' + searcher.collect_PV());
