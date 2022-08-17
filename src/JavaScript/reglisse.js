@@ -1376,6 +1376,11 @@ function PERFT(board, depth, indent='') {
 //                      Here, peSTO evaluation is used.                       //
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
+var SKILL = 20;
+
+function skill() {
+    return Math.random() * (SKILL - 20) * 200 - (SKILL - 20) * 100;
+};
 
 function FLIP(sq) {return sq ^56;};
 
@@ -1593,7 +1598,8 @@ function evaluate(board) {
         mgPhase = Math.min(gamePhase, 24),
         egPhase = 24 - mgPhase;
     
-        return ((mgScore * mgPhase + egScore * egPhase) / 24) >> 0;
+        return (((mgScore * mgPhase + egScore * egPhase) / 24) + 
+                 (SKILL != 20 ? skill() : 0))>> 0;
 };
 
 
@@ -2251,6 +2257,7 @@ UCI.on('line', function(command){
     if (command.split(' ')[0] == 'uci') {
         console.log('id name Réglisse-JS\nid author Paul JF\n');
         console.log('option name Clear Tables type button');
+        console.log('option name Skill type spin default 20 min 0 max 20');
         // console.log('option name OwnBook type check default true');
         console.log('uciok');
     } else if (command.split(' ')[0] == 'quit') {
@@ -2279,6 +2286,13 @@ UCI.on('line', function(command){
     } else if (command.split(' ')[0] == 'setoption' &&
                command.split(' ')[1] == 'name') {
         if (command.includes('Clear') && command.includes('Tables')) {
+            reset_tables();
+        };
+
+        if (command.includes('Skill') && command.includes('value')) {
+            SKILL = parseInt(
+                command.split(' ')[command.split(' ').indexOf('value') + 1]);
+            console.log('skill : ' + SKILL.toString());
             reset_tables();
         };
     } else if (command.split(' ')[0] == 'go') {
