@@ -158,7 +158,7 @@ function encode_move(from_, to_, promotion=NONE, captured=NONE, ep=NONE) {
 };
 
 function str_move(move) {
-    // Transform binary move to uci string
+    // Transforms binary move to uci string
     return SQUARE_NAMES[((0b1111111 << 7) & move) >> 7] +
            SQUARE_NAMES[  0b1111111       & move] + 
         [
@@ -191,8 +191,8 @@ function check_number(integer, digit, place) {
         place--;
     }
 
-    if (integer == 0) {return false};
-    if (integer % 10 == digit) {return true} else {return false};
+    if (integer == 0) {return false;};
+    if (integer % 10 == digit) {return true;} else {return false;};
 };
 
 function isNumeric(s) {
@@ -1683,6 +1683,7 @@ class Entry {
         this.depth  = 0;
         this.value  = 0;
         this.flag   = 0;
+        this.move   = 0;
     };
 };
 
@@ -1751,7 +1752,7 @@ function ProbeHash(board, depth, alpha, beta, hash_=false) {
     return valUNKNOW;
 };
 
-function RecordHash(board, depth, val, flag, hash_=false) {
+function RecordHash(board, depth, val, flag, hash_=false, best_move=0) {
     // Store information about the position in the TT.
 
     if (!hash_) {
@@ -1762,14 +1763,19 @@ function RecordHash(board, depth, val, flag, hash_=false) {
     entry.value = val;
     entry.flag  = flag;
     entry.depth = depth;
+    entry.move  = best_move
     tt[hash_ % ttSIZE] = entry;
 };
 
-function score_move(move, board, ply) {
+function score_move(move, board, ply, best_move=0) {
     // A method for move ordering. An heuristic to assign score to moves to
     // search probable best moves at first, so that search is faster.
 
     var score = 0;
+
+    if (move == best_move) {
+        return mateValue;
+    };
 
     if (move & 0b0_1_111_000_0000000_0000000) { // If the move is a capture
                                                 // move
@@ -1797,12 +1803,18 @@ function score_move(move, board, ply) {
 };
 
 
-function ordering(board, ply, moves) {
+function ordering(board, ply, moves, hash_=false) {
     // A move ordering method. See score_move()
-
+    var best_move = 0;
+    if (hash_) {
+        var entry = tt[hash_ % ttSIZE];
+        if (entry.key == hash_) {
+            best_move = entry.move;
+        };
+    };
     var Moves = [];
     for (var move of moves) {
-        Moves.push([move, score_move(move, board, ply)]);
+        Moves.push([move, score_move(move, board, ply, best_move)]);
     };
     Moves.sort(function(a, b){return a[1] > b[1] ? -1 : 1;});
     for (var i=0; i<Moves.length; i++) {
@@ -1864,7 +1876,7 @@ class Search {
         
         var val = 0;
         
-        if (!(beta - alpha > 1) || (checkFlag == -1) && false) { // Probe TT if
+        if (!(beta - alpha > 1) || (checkFlag == -1)) { // Probe TT if
                                                         // node is not a PV node
             // If checkFlag = -1 we know this is a QS-node
             val = ProbeHash(this.board, depth, alpha, beta, hash_);
@@ -1962,7 +1974,8 @@ class Search {
             RecordHash(this.board, depth, NONE, hash_NO_NULL, hash_);
         };
 
-        var legal = 0;
+        var legal     = 0;
+        var best_move = 0;
         // PV store in itialisation :
         if (storePV) {
             this.pv[pvIndex] = 0 // no PV yet
@@ -1999,7 +2012,7 @@ class Search {
             this.board.pop(move);
 
             if (val >= beta) { // beta cutoff
-                RecordHash(this.board, depth, beta, hashBETA, hash_);
+                RecordHash(this.board, depth, beta, hashBETA, hash_, move);
                 if (!(move & 0b0_1_111_000_0000000_0000000)) {
                     // If the move is not a capture one, let's store it as a
                     // killer move. The idea is that if this move create a beta
@@ -2031,6 +2044,7 @@ class Search {
                 if (storePV) {
                     this.pv[pvIndex] = move;
                 };
+                best_move = move // To store the best move in TT
             };
 
             // Late move reduction. With move ordering, latest moves are 
@@ -2052,7 +2066,7 @@ class Search {
             return 0;
         };
 
-        RecordHash(this.board, depth, alpha, hashf, hash_)
+        RecordHash(this.board, depth, alpha, hashf, hash_, best_move)
         this.ply--;
         return alpha;
 
