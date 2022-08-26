@@ -1799,6 +1799,11 @@ function score_move(move, board, ply, best_move=0) {
     score +=  history_h[board.turn >> 0][(move & 0b0_1111111_0000000) >> 7]
             [move & 0b0_1111111];
 
+    if (score == 0) {
+        var view = board.turn ? 1 : -1;
+        score = evaluate(board) * view;
+    };
+
     return score;
 };
 
@@ -2096,7 +2101,7 @@ class Search {
         };
 
         // delta pruning
-        var delta = 900 // queen value
+        var delta = 900; // queen value
         if (val < alpha - delta) {
             this.ply--;
             return alpha;
