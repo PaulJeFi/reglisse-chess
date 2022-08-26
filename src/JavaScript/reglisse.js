@@ -2255,6 +2255,12 @@ function pretty_fen(fen) {
     return board;
 };
 
+function manage(time, board, inc) {
+    // for time management
+    return Math.min((2 - Math.min(board.move_stack.length, 10)) * 
+           (time / Math.max(40 - board.move_stack.length, 1)), time);
+};
+
 var board = new Board();
 
 process.stdin.setEncoding('utf-8');
@@ -2301,24 +2307,48 @@ UCI.on('line', function(command){
                command.split(' ')[1] == 'name') {
         if (command.includes('Clear') && command.includes('Tables')) {
             reset_tables();
+            console.log('info string Cleared Tables')
         };
 
         if (command.includes('Skill') && command.includes('value')) {
             SKILL = parseInt(
                 command.split(' ')[command.split(' ').indexOf('value') + 1]);
-            console.log('skill : ' + SKILL.toString());
+            console.log('info string Skill set to ' + SKILL.toString());
             reset_tables();
         };
     } else if (command.split(' ')[0] == 'go') {
         var depth = 3;
-        var time = false;
+        var time  = false;
+        var inc   = 0;
         if (command.includes('depth')) {
             depth = parseInt(
                 command.split(' ')[command.split(' ').indexOf('depth') + 1]);
         } else if (command.includes('movetime')) {
             time = parseInt(
                 command.split(' ')[command.split(' ').indexOf('movetime') + 1]);
+        } else if (board.turn) {
+            if (command.includes('wtime')) {
+                time = parseInt(
+                   command.split(' ')[command.split(' ').indexOf('wtime') + 1]);
+                if (command.includes('winc')) {
+                    inc = parseInt(command.split(' ')
+                        [command.split(' ').indexOf('wtime') + 1]);
+                };
+                time = manage(time, board, inc);
+            };
+        } else if (!board.turn) {
+            if (command.includes('btime')) {
+                time = parseInt(
+                   command.split(' ')[command.split(' ').indexOf('btime') + 1]);
+                if (command.includes('binc')) {
+                    inc = parseInt(command.split(' ')
+                        [command.split(' ').indexOf('btime') + 1]);
+                };
+                time = manage(time, board, inc);
+            };
         };
+        console.log('info string searching for ' +
+            (time >> 0).toString() + ' ms');
         var move = iterative_deepening(board, depth, time)[0][0];
         if (command.split(' ').includes('move')) {
             board.push(move);
