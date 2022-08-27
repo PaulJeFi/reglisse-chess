@@ -62,4 +62,4 @@ Réglisse supports some basics commands of the [UCI interface](./engine-interfac
 
 To run the UCI interface, just run the file [```uci.py```](./src/Python/uci.py) or [```reglisse.js```](./src/JavaScript/reglisse.js).
 
-I think a good depth, between time and playing strength, is 3.
+I think a good depth, between time and playing strength, is 7.
