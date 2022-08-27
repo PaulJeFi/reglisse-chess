@@ -8,7 +8,7 @@ Réglisse uses [mailbox](https://www.chessprogramming.org/Mailbox) and the idea 
 
 It currently has the following features :
 
-- [Book](https://www.chessprogramming.org/Opening_Book) : [Stockfish](https://github.com/official-stockfish/Stockfish)['s opening book](https://github.com/official-stockfish/books)
+- [Book](https://www.chessprogramming.org/Opening_Book) : [Stockfish](https://github.com/official-stockfish/Stockfish)['s opening book](https://github.com/official-stockfish/books) _to be added on JS version_
 - [Board representation](https://www.chessprogramming.org/Board_Representation)
     - [mailbox](https://www.chessprogramming.org/Mailbox)
     - [move encoding](https://www.chessprogramming.org/Encoding_Moves)
@@ -27,7 +27,7 @@ It currently has the following features :
     - [TT](https://www.chessprogramming.org/Transposition_Table)
         - [Zobrist Hashing](https://www.chessprogramming.org/Zobrist_Hashing)
     - [Null Move Pruning](https://www.chessprogramming.org/Null_Move_Pruning)
-        - [Double Null Move](https://www.chessprogramming.org/Double_Null_Move)
+        - [Double Null Move](https://www.chessprogramming.org/Double_Null_Move) _to be readded_
     - [Razoring](https://www.chessprogramming.org/Razoring#LimitedRazoring)
     - [LMR](https://www.chessprogramming.org/Late_Move_Reductions)
     - [Futility Pruning](https://www.chessprogramming.org/Futility_Pruning)
