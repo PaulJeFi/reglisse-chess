@@ -2262,8 +2262,12 @@ function pretty_fen(fen) {
 
 function manage(time, board, inc) {
     // for time management
+    /*
     return Math.min((2 - Math.min(board.move_stack.length, 10)) * 
-           (time / Math.max(40 - board.move_stack.length, 1)), time);
+           (time / Math.max(40 - board.move_stack.length, 1)) + inc, time);
+    */
+   var Y = Math.max(10, 40 - board.move_stack.length/2);
+   return time / Y + inc * Y/10;
 };
 
 var board = new Board();
@@ -2337,7 +2341,7 @@ UCI.on('line', function(command){
                    command.split(' ')[command.split(' ').indexOf('wtime') + 1]);
                 if (command.includes('winc')) {
                     inc = parseInt(command.split(' ')
-                        [command.split(' ').indexOf('wtime') + 1]);
+                        [command.split(' ').indexOf('winc') + 1]);
                 };
                 time = manage(time, board, inc);
             };
@@ -2347,7 +2351,7 @@ UCI.on('line', function(command){
                    command.split(' ')[command.split(' ').indexOf('btime') + 1]);
                 if (command.includes('binc')) {
                     inc = parseInt(command.split(' ')
-                        [command.split(' ').indexOf('btime') + 1]);
+                        [command.split(' ').indexOf('binc') + 1]);
                 };
                 time = manage(time, board, inc);
             };
