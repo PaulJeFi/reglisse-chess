@@ -60,6 +60,6 @@ Réglisse supports some basics commands of the [UCI interface](./engine-interfac
    - ```d``` : displays the board, the [FEN](https://www.chessprogramming.org/Forsyth-Edwards_Notation) and the [hash key](https://www.chessprogramming.org/Zobrist_Hashing) of the current position
    - ```eval``` : displays the static evaluation of the current position
 
-To run the UCI interface, just run the file [```uci.py```](./src/Python/uci.py) or [```reglisse.js```](./src/JavaScript/reglisse.js).
+To run the UCI interface, just run the file [```uci.py```](./src/Python/uci.py) or [```reglisse.js```](./src/JavaScript/reglisse.js). I highly recommend to use the JS version.
 
 I think a good depth, between time and playing strength, is 7.
