@@ -2294,8 +2294,8 @@ UCI.on('line', function(command){
     } else if (command.split(' ')[0] == 'ucinewgame') {
         board = new Board();
         reset_tables();
-    } else if (command.split(' ')[0] == 'readyok') {
-        console.log('isready')
+    } else if (command.split(' ')[0] == 'isready') {
+        console.log('readyok')
     } else if (command.split(' ')[0] == 'eval') {
         var view = board.turn ? 1 : -1;
         console.log('Static eval : ' + evaluate(board).toString() * view +
