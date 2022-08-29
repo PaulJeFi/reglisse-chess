@@ -1,4 +1,5 @@
 'use strict';
+const DEBUG = false;
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
 //                               CONSTANTS                                    //
@@ -2288,8 +2289,14 @@ var UCI = readline.createInterface({
   terminal: false
 });
 
+const fs = require('fs');
+
 console.log('Réglisse-JS by Paul JF');
 UCI.on('line', function(command){
+
+    if (DEBUG) {
+        fs.writeFile('./log.txt', command + '\n', { flag: 'a+' }, err => {});
+    };
 
     if (command.split(' ')[0] == 'uci') {
         console.log('id name Réglisse-JS\nid author Paul JF\n');
@@ -2298,6 +2305,9 @@ UCI.on('line', function(command){
         // console.log('option name OwnBook type check default true');
         console.log('uciok');
     } else if (command.split(' ')[0] == 'quit') {
+        if (DEBUG) {
+            fs.writeFile('./log.txt', command +'\n', { flag: 'a+' }, err => {});
+        }; 
         process.exit();
     } else if (command.split(' ')[0] == 'ucinewgame') {
         board = new Board();
