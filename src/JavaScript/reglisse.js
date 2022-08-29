@@ -1364,7 +1364,7 @@ function PERFT(board, depth, indent='') {
         };
         board.pop(move)
     };
-    console.log(indent + 'total nodes : ' + nodes.toString());
+    console.log('\n' + indent + 'Nodes searched : ' + nodes.toString());
     return nodes;
 };
 
@@ -2337,7 +2337,11 @@ UCI.on('line', function(command){
         var depth = 3;
         var time  = false;
         var inc   = 0;
-        if (command.includes('depth')) {
+        var perft = false;
+        if (command.includes('perft')) {
+            perft = parseInt(
+                command.split(' ')[command.split(' ').indexOf('perft') + 1]);
+        } else if (command.includes('depth')) {
             depth = parseInt(
                 command.split(' ')[command.split(' ').indexOf('depth') + 1]);
         } else if (command.includes('movetime')) {
@@ -2364,11 +2368,16 @@ UCI.on('line', function(command){
                 time = manage(time, board, inc);
             };
         };
-        console.log('info string searching for ' +
-            (time >> 0).toString() + ' ms');
-        var move = iterative_deepening(board, depth, time)[0][0];
-        if (command.split(' ').includes('move')) {
-            board.push(move);
+        if (perft) {
+            PERFT(board, perft);    
+        }
+        else {
+            console.log('info string searching for ' +
+                (time >> 0).toString() + ' ms');
+            var move = iterative_deepening(board, depth, time)[0][0];
+            if (command.split(' ').includes('move')) {
+                board.push(move);
+            };
         };
     } else if (command.split(' ')[0] == 'position') {
         if (command.split(' ')[1] == 'startpos') {
