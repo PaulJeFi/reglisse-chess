@@ -2305,9 +2305,6 @@ UCI.on('line', function(command){
         // console.log('option name OwnBook type check default true');
         console.log('uciok');
     } else if (command.split(' ')[0] == 'quit') {
-        if (DEBUG) {
-            fs.writeFile('./log.txt', command +'\n', { flag: 'a+' }, err => {});
-        }; 
         process.exit();
     } else if (command.split(' ')[0] == 'ucinewgame') {
         board = new Board();
