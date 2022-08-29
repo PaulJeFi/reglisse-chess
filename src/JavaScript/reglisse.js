@@ -2170,6 +2170,14 @@ class Search {
 
 };
 
+function display_eval(evaluation) {
+    if (( evaluation >= mateValue - MAX_PLY) ||
+        (-evaluation >= mateValue - MAX_PLY)) {
+            return 'mate ' + ((evaluation >= 0 ? 1 : -1) * Math.ceil((mateValue - Math.abs(evaluation))/2)).toString();
+        };
+    return 'cp ' + evaluation;
+};
+
 function iterative_deepening(board, depth=4, time=false) {
 
     var startTime = new Date().getTime();
@@ -2194,8 +2202,8 @@ function iterative_deepening(board, depth=4, time=false) {
         elapsed = (new Date().getTime()) - startTime;
 
         if (!searcher.timeout) {
-            console.log('info depth ' + searcher.depth.toString() + ' score cp '
-            + (evaluation).toString() +' nodes ' +
+            console.log('info depth ' + searcher.depth.toString() + ' score '
+            + display_eval(evaluation) +' nodes ' +
             searcher.nodes.toString() + ' time ' + elapsed.toString() + ' nps '
             +((searcher.nodes / ((elapsed-old_elapsed) / 1000)) >> 0).toString()
             + ' pv ' + searcher.collect_PV());
