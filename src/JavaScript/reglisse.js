@@ -2158,7 +2158,7 @@ class Search {
             move = 0;
         for (var i=0; i<this.depth; i++) {
             move = this.pv[index_pv(i, this.depth)];
-            if (move == 0) {
+            if (move == 0) {
                 break;
             };
             line += str_move(move) + ' ';
