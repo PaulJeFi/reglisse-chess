@@ -8,7 +8,7 @@ In this file I will thank people without whom this project would not be possible
 - Anatole, who endured all my stupidities
 - Anjelina
 - Térence, a genius coding friend
-- Tharushan, a friend who knows how to code and often plays chess with me
+- Tharushan, a friend who knows how to code and often plays chess with me. He helped me developping the evaluation function, and he is the main tester of Réglisse.
 - Théodora, a great friend who encouraged me during this project and let me use her cat's name
 - Sebastian Lague for his [beautifull video about chessprogramming](https://www.youtube.com/watch?v=U4ogK0MIzqk)
 - Maksim Korzh, for having a whole [youtube chanel about chessprogramming](https://www.youtube.com/channel/UCB9-prLkPwgvlKKqDgXhsMQ)
