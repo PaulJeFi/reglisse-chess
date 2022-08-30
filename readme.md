@@ -53,13 +53,14 @@ Take a look at the [thanks file](./THANKS.md) to see people who made this projec
 See the [license file](./LICENSE.txt) to know more about legal stuffs.
 
 ## How to use
-Réglisse supports some basics commands of the [UCI interface](./engine-interface.md). Three more commands exist :
+Réglisse supports some basics commands of the [UCI interface](./engine-interface.md). Few more commands exist :
    - ```move [move]``` : make the move (in UCI format) on the board
    - ```undo``` : undo the last move
    - ```go move``` : make the engine search and play its move on the board
+   - ```go perft [X]``` : perft depth X debugging function
    - ```d``` : displays the board, the [FEN](https://www.chessprogramming.org/Forsyth-Edwards_Notation) and the [hash key](https://www.chessprogramming.org/Zobrist_Hashing) of the current position
-   - ```eval``` : displays the static evaluation of the current position
+   - ```eval``` : displays the static evaluation of the current position (do not displays mate, mate scores are handled in search)
 
-To run the UCI interface, just run the file [```uci.py```](./src/Python/uci.py) or [```reglisse.js```](./src/JavaScript/reglisse.js). I highly recommend to use the JS version.
+You can run Réglisse in your favorite UCI GUI or in the terminal with [this script](./src/JavaScript/reglisse.sh). You may have to authorize access to this script first (```$ chmod +x [path to scipt]``` on MacOS an Linux). You need [node](https://nodejs.org/en/) to run Réglisse locally. You may hve to modify ```/usr/local/bin/node``` on [the script](./src/JavaScript/reglisse.sh) to the path to node on your system.
 
-I think a good depth, between time and playing strength, is 7.
+You can also play against Réglisse on [its Lichess account](https://lichess.org/@/Ramses-Chess). If it is not online, you can put it online with you Google account by running [this notebook](https://colab.research.google.com/drive/1LMiJFNrYA5y6VFbmFUsrFBujLUU5Cq4A?usp=sharing) (select the code cell and hit ```SHIFT + ENTER```).

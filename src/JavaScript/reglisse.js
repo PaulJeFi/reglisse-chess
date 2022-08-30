@@ -1808,7 +1808,6 @@ function score_move(move, board, ply, best_move=0) {
     return score;
 };
 
-
 function ordering(board, ply, moves, hash_=false) {
     // A move ordering method. See score_move()
     var best_move = 0;
@@ -2159,6 +2158,9 @@ class Search {
             move = 0;
         for (var i=0; i<this.depth; i++) {
             move = this.pv[index_pv(i, this.depth)];
+            if (move == 0) {
+                break;
+            };
             line += str_move(move) + ' ';
             PV.push(move);
         };
@@ -2269,14 +2271,17 @@ function pretty_fen(fen) {
     return board;
 };
 
-function manage(time, board, inc) {
+function manage(time, board, inc, movestogo) {
     // for time management
     /*
     return Math.min((2 - Math.min(board.move_stack.length, 10)) * 
            (time / Math.max(40 - board.move_stack.length, 1)) + inc, time);
     */
-   var Y = Math.max(10, 40 - board.move_stack.length/2);
-   return time / Y + inc * Y/10;
+    if (movestogo == 0) {
+        var Y = Math.max(10, 40 - board.move_stack.length/2);
+        return time / Y + inc * Y/10;
+    };
+    return time/movestogo + inc;
 };
 
 var board = new Board();
@@ -2345,6 +2350,12 @@ UCI.on('line', function(command){
         var time  = false;
         var inc   = 0;
         var perft = false;
+        var movestogo = 0;
+
+        if (command.includes('movestogo')) {
+            movestogo = parseInt(
+                command.split(' ')[command.split(' ').indexOf('movestogo')+1]);
+        };
         if (command.includes('perft')) {
             perft = parseInt(
                 command.split(' ')[command.split(' ').indexOf('perft') + 1]);
@@ -2362,7 +2373,7 @@ UCI.on('line', function(command){
                     inc = parseInt(command.split(' ')
                         [command.split(' ').indexOf('winc') + 1]);
                 };
-                time = manage(time, board, inc);
+                time = manage(time, board, inc, movestogo);
             };
         } else if (!board.turn) {
             if (command.includes('btime')) {
@@ -2372,7 +2383,7 @@ UCI.on('line', function(command){
                     inc = parseInt(command.split(' ')
                         [command.split(' ').indexOf('binc') + 1]);
                 };
-                time = manage(time, board, inc);
+                time = manage(time, board, inc, movestogo);
             };
         };
         if (perft) {
