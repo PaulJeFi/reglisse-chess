@@ -2176,7 +2176,8 @@ class Search {
 function display_eval(evaluation) {
     if (( evaluation >= mateValue - MAX_PLY) ||
         (-evaluation >= mateValue - MAX_PLY)) {
-            return 'mate ' + ((evaluation >= 0 ? 1 : -1) * Math.ceil((mateValue - Math.abs(evaluation))/2)).toString();
+            return 'mate ' + ((evaluation >= 0 ? 1 : -1) * Math.ceil((mateValue
+                - Math.abs(evaluation))/2)).toString();
         };
     return 'cp ' + evaluation;
 };
