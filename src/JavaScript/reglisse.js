@@ -2297,11 +2297,11 @@ function manage(time, board, inc, movestogo) {
     */
     if (movestogo == 0) {
         var Y = Math.max(10, 40 - board.move_stack.length/2);
-        return Math.min(time - MoveOverhead,
-                        time / Y + inc * Y/10 - MoveOverhead);
+        return Math.max(0, Math.min(time - MoveOverhead,
+                        time / Y + inc * Y/10 - MoveOverhead));
     };
-    return Math.min(time - MoveOverhead,
-                    time/movestogo + inc - MoveOverhead);
+    return Math.max(0, Math.min(time - MoveOverhead,
+                    time/movestogo + inc - MoveOverhead));
 };
 
 var board = new Board();
