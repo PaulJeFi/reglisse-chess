@@ -2197,7 +2197,7 @@ function iterative_deepening(board, depth=4, time=false) {
     if (moves.length == 1) {
         console.log('bestmove ' + str_move(moves[0]));
         return [moves[0], valUNKNOW];
-    }
+    };
 
     var startTime = new Date().getTime();
     var searcher = 0;
