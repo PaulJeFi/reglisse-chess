@@ -1663,10 +1663,9 @@ function hash(board) {
 
 init_zobrist();
 
-
+var ttSIZE = 838860;  // The size of the transposition table (TT).
 const R = 2,          // R is the depth reduction when we do a null-move search.
                       // See later.
-ttSIZE = 10_000_000,  // The size of the transposition table (TT).
 // Some hash flag used in TT :
 hashEXACT    = 0,
 hashALPHA    = 1,
@@ -1714,6 +1713,16 @@ function reset_tables() {
     for (var i=0; i<MAX_PLY; i++) {
         killers.push([NONE, NONE]);
     };
+};
+
+function setHashSize(Mb) {
+    // Set the hash size (thanks to WukongJS)
+
+    // adjust MB if going beyond the aloowed bounds
+    Mb = Math.max(4, Math.min(Mb, 256));
+    
+    ttSIZE = (Mb * 0x100000 / 20)>>0;
+    reset_tables();
 };
 
 reset_tables();
@@ -2272,6 +2281,8 @@ function pretty_fen(fen) {
     return board;
 };
 
+var MoveOverhead = 10;
+
 function manage(time, board, inc, movestogo) {
     // for time management
     /*
@@ -2280,9 +2291,9 @@ function manage(time, board, inc, movestogo) {
     */
     if (movestogo == 0) {
         var Y = Math.max(10, 40 - board.move_stack.length/2);
-        return time / Y + inc * Y/10;
+        return time / Y + inc * Y/10 - MoveOverhead;
     };
-    return time/movestogo + inc;
+    return time/movestogo + inc - MoveOverhead;
 };
 
 var board = new Board();
@@ -2308,6 +2319,9 @@ UCI.on('line', function(command){
         console.log('id name Réglisse-JS\nid author Paul JF\n');
         console.log('option name Clear Tables type button');
         console.log('option name Skill type spin default 20 min 0 max 20');
+        console.log('option name Hash type spin default 128 min 4 max 256');
+        console.log('option name Move Overhead type spin default 10 ' + 
+                    'min 0 max 10000');
         // console.log('option name OwnBook type check default true');
         console.log('uciok');
     } else if (command.split(' ')[0] == 'quit') {
@@ -2346,6 +2360,20 @@ UCI.on('line', function(command){
             console.log('info string Skill set to ' + SKILL.toString());
             reset_tables();
         };
+
+        if (command.includes('Hash') && command.includes('value')) {
+            var HASH = parseInt(
+                command.split(' ')[command.split(' ').indexOf('value') + 1]);
+            setHashSize(HASH);
+            console.log('info string TT size set to ' + ttSIZE.toString());
+        };
+
+        if (command.includes('Move Overhead') && command.includes('value')) {
+            MoveOverhead = parseInt(
+                command.split(' ')[command.split(' ').indexOf('value') + 1]);
+            console.log('info string Move Overhead set to ' +
+                         MoveOverhead.toString());
+        };
     } else if (command.split(' ')[0] == 'go') {
         var depth = 3;
         var time  = false;
@@ -2365,7 +2393,8 @@ UCI.on('line', function(command){
                 command.split(' ')[command.split(' ').indexOf('depth') + 1]);
         } else if (command.includes('movetime')) {
             time = parseInt(
-                command.split(' ')[command.split(' ').indexOf('movetime') + 1]);
+                command.split(' ')[command.split(' ').indexOf('movetime') + 1])
+                - MoveOverhead;
         } else if (board.turn) {
             if (command.includes('wtime')) {
                 time = parseInt(
