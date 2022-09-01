@@ -18,7 +18,7 @@ This text shows the differents options availables in Réglisse, and are handled 
 This is a guide to understand the différents options.
 
 ## Clear Tables
-Clear the Hash Table and differents other tables (History Heuristic, Kuller Moves).
+Clear the Hash Table and differents other tables (History Heuristic, Killer Moves).
 
 ## Skill
 The Skill of the engine. The range value is from 0 to 20, where 20 correspond to Réglisse playing at full strength, and 0 is the lower strength. The default value is 20.
