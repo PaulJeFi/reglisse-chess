@@ -36,7 +36,7 @@ engine:                      # Engine settings.
     chessdb_book:
       enabled: true
       min_time: 20
-      move_quality: "good"   # One of "all", "good", "best".
+      move_quality: "best"   # One of "all", "good", "best".
       min_depth: 20          # Only for move_quality: "best".
       contribute: true
     lichess_cloud_analysis:
@@ -73,7 +73,7 @@ engine:                      # Engine settings.
   uci_options:               # Arbitrary UCI options passed to the engine.
     Move Overhead: 100       # Increase if your bot flags games too often.
     #Threads: 2               # Max CPU threads the engine can use.
-    #Hash: 256                # Max memory (in megabytes) the engine can allocate.
+    Hash: 256                # Max memory (in megabytes) the engine can allocate.
 #   go_commands:             # Additional options to pass to the UCI go command.
 #     nodes: 1               # Search so many nodes only.
 #     depth: 5               # Search depth ply only.
