@@ -64,3 +64,6 @@ Réglisse supports some basics commands of the [UCI interface](./engine-interfac
 You can run Réglisse in your favorite UCI GUI or in the terminal with [this script](./src/JavaScript/reglisse.sh). You may have to authorize access to this script first (```$ chmod +x [path to scipt]``` on MacOS and Linux). You need [node](https://nodejs.org/en/) to run Réglisse locally. You may have to modify ```/usr/local/bin/node``` on [the script](./src/JavaScript/reglisse.sh) to the path to node on your system.
 
 You can also play against Réglisse on [its Lichess account](https://lichess.org/@/Ramses-Chess). If it is not online, you can put it online with you Google account by running [this notebook](https://colab.research.google.com/drive/1LMiJFNrYA5y6VFbmFUsrFBujLUU5Cq4A?usp=sharing) (select the code cell and hit ```SHIFT + ENTER```).
+
+## UCI Options
+To see all availables UCI options, look at [this file](./UCI_options.md).

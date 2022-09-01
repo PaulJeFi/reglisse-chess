@@ -2193,11 +2193,13 @@ function display_eval(evaluation) {
 
 function iterative_deepening(board, depth=4, time=false) {
 
-    var moves = board.genLegal();
-    if (moves.length == 1) {
-        console.log('bestmove ' + str_move(moves[0]));
-        return [moves[0], valUNKNOW];
-    };
+    if (!UCI_AnalyseMode) {
+        var moves = board.genLegal();
+        if (moves.length == 1) {
+            console.log('bestmove ' + str_move(moves[0]));
+            return [moves[0], valUNKNOW];
+        };
+    }; 
 
     var startTime = new Date().getTime();
     var searcher = 0;
@@ -2205,8 +2207,8 @@ function iterative_deepening(board, depth=4, time=false) {
     var evaluation = 0;
     var old_evaluation = 0;
     var elapsed = 0;
-    var old_elapsed = 0;
-    var view = board.turn ? 1 : -1;
+    var view = board.turn ? 1 : -1
+    var total_nodes = 0;
 
     if (time) {
         depth = MAX_PLY;
@@ -2221,10 +2223,11 @@ function iterative_deepening(board, depth=4, time=false) {
         elapsed = (new Date().getTime()) - startTime;
 
         if (!searcher.timeout) {
+            total_nodes += searcher.nodes;
             console.log('info depth ' + searcher.depth.toString() + ' score '
             + display_eval(evaluation) +' nodes ' +
-            searcher.nodes.toString() + ' time ' + elapsed.toString() + ' nps '
-            +((searcher.nodes / ((elapsed-old_elapsed) / 1000)) >> 0).toString()
+            total_nodes + ' time ' + elapsed.toString() + ' nps '
+            +((total_nodes / (elapsed / 1000)) >> 0).toString()
             + ' pv ' + searcher.collect_PV());
         };
         if (searcher.timeout) {
@@ -2240,7 +2243,6 @@ function iterative_deepening(board, depth=4, time=false) {
 
         old_searcher = searcher;
         old_evaluation = evaluation;
-        old_elapsed = elapsed;
     };
 };
 
@@ -2252,6 +2254,9 @@ function iterative_deepening(board, depth=4, time=false) {
 //                       The Universal Chess Interface                        //
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
+var MoveOverhead = 10;
+var UCI_AnalyseMode = false;
+
 function isNumeric(num){
     return !isNaN(num);
 };
@@ -2286,8 +2291,6 @@ function pretty_fen(fen) {
 
     return board;
 };
-
-var MoveOverhead = 10;
 
 function manage(time, board, inc, movestogo) {
     // for time management
@@ -2330,6 +2333,7 @@ UCI.on('line', function(command){
         console.log('option name Hash type spin default 128 min 4 max 256');
         console.log('option name Move Overhead type spin default 10 ' + 
                     'min 0 max 10000');
+        console.log('option name UCI_AnalyseMode type check default false')
         // console.log('option name OwnBook type check default true');
         console.log('uciok');
     } else if (command.split(' ')[0] == 'quit') {
@@ -2381,6 +2385,14 @@ UCI.on('line', function(command){
                 command.split(' ')[command.split(' ').indexOf('value') + 1]);
             console.log('info string Move Overhead set to ' +
                          MoveOverhead.toString());
+        };
+
+        if (command.includes('UCI_AnalyseMode') && command.includes('value')) {
+            UCI_AnalyseMode = (
+                command.split(' ')[command.split(' ').indexOf('value') + 1]
+                 == 'true');
+            console.log('info string UCI_AnalyseMode set to ' +
+                         UCI_AnalyseMode.toString());
         };
     } else if (command.split(' ')[0] == 'go') {
         var depth = 3;
