@@ -1861,6 +1861,7 @@ class Search {
             this.pv.push(0);
         };
         this.ply = board.move_stack.length;
+        this.selfdepth = 0;
 
         // Time management
         this.timeout        = false;
@@ -1880,6 +1881,8 @@ class Search {
         if (depth == this.depth) {
             realdepth = this.depth;
         };
+
+        this.selfdepth = Math.max(this.selfdepth, this.ply);
 
         this.nodes++;
         var fFoundPv = false,
@@ -2090,6 +2093,8 @@ class Search {
         // Quiescence search : when search reaches its depth limit, we need to
         // be sure to not miss tactics before calling evaluation.
 
+        this.selfdepth = Math.max(this.selfdepth, this.ply);
+
         var turn = this.board.turn ? WHITE : BLACK;
         this.nodes++;
         this.ply++;
@@ -2225,7 +2230,8 @@ function iterative_deepening(board, depth=4, time=false) {
         if (!searcher.timeout) {
             total_nodes += searcher.nodes;
             console.log('info depth ' + searcher.depth.toString() + ' score '
-            + display_eval(evaluation) +' nodes ' +
+            + display_eval(evaluation) + ' seldepth ' +
+            searcher.selfdepth.toString() +' nodes ' +
             total_nodes + ' time ' + elapsed.toString() + ' nps '
             +((total_nodes / (elapsed / 1000)) >> 0).toString()
             + ' pv ' + searcher.collect_PV());
