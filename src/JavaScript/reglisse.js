@@ -1746,9 +1746,9 @@ function ProbeHash(board, depth, alpha, beta, hash_=false) {
     };
     var entry = tt[hash_ % ttSIZE];
     if ((entry.key == hash_) && (entry.depth >= depth)) {
-        if (entry.flag == hash_NO_NULL) {
-            return hash_NO_NULL;
-        };
+        //if (entry.flag == hash_NO_NULL) {
+        //    return hash_NO_NULL;
+        //};
         if (entry.flag == hashEXACT) {
             return entry.value;
         };
@@ -1758,6 +1758,10 @@ function ProbeHash(board, depth, alpha, beta, hash_=false) {
         if ((entry.flag == hashBETA) && (entry.value >= beta)) {
             return beta;
         };
+    };
+    entry = tt[(hash_ ^ 12345) % ttSIZE];
+    if (entry.flag == hash_NO_NULL) {
+        return hash_NO_NULL;
     };
     return valUNKNOW;
 };
@@ -1809,10 +1813,12 @@ function score_move(move, board, ply, best_move=0) {
     score +=  history_h[board.turn >> 0][(move & 0b0_1111111_0000000) >> 7]
             [move & 0b0_1111111];
 
+    /*
     if (score == 0) {
         var view = board.turn ? 1 : -1;
         score = evaluate(board) * view;
     };
+    */
 
     return score;
 };
@@ -1871,7 +1877,7 @@ class Search {
 
 
     pvSearch(depth, alpha=-mateValue, beta=mateValue, mate=mateValue, pvIndex=0,
-             storePV=true, checkFlag=0, realdepth=0) {
+             storePV=true, checkFlag=0, realdepth=0, no_null=true) {
         // Principal Variation Search
         
         // checkFlag : some infomration about check
@@ -1880,6 +1886,7 @@ class Search {
         //    .-1 -> is check
         if (depth == this.depth) {
             realdepth = this.depth;
+            no_null = true;
         };
 
         this.selfdepth = Math.max(this.selfdepth, this.ply);
@@ -1888,12 +1895,11 @@ class Search {
         var fFoundPv = false,
             hashf    = hashALPHA,
             turn     = this.board.turn ? WHITE : BLACK,
-            hash_    = hash(this.board),
-            no_null  = false;
+            hash_    = hash(this.board);
         
         var val = 0;
         
-        if (!(beta - alpha > 1) || (checkFlag == -1)) { // Probe TT if
+        if (!(Math.abs(beta - alpha) > 1) || (checkFlag == -1)) { // Probe TT if
                                                         // node is not a PV node
             // If checkFlag = -1 we know this is a QS-node
             val = ProbeHash(this.board, depth, alpha, beta, hash_);
@@ -1933,7 +1939,8 @@ class Search {
         };
 
         // Razoring (old pruning method, today quite unused because risky ...)
-        var value = evaluate(this.board) + 125;
+        var static_eval = evaluate(this.board);
+        var value = static_eval + 125;
         if ((value < beta) && !(isCheck || storePV)) {
             if (depth == 1) {
                 this.ply++;
@@ -1971,24 +1978,30 @@ class Search {
         // us if our opponent plays, there is no needing to see what's happends
         // if we play since it will probably be good for us. This is a bad idea
         // in zugzwang.
-        if (!(isCheck || storePV || no_null) &&
-            (this.board.move_stack.length >= 1) &&
-            (this.board.move_stack[this.board.move_stack - 1])) {
+        if (!isCheck && !storePV && !no_null &&
+            //(this.board.move_stack.length >= 1) &&
+            (this.board.move_stack[this.board.move_stack.length - 2] != NONE) &&
+            (static_eval > beta)) {
 
             this.ply++;
             this.board.push(NONE); // make a null move
-            val = -this.pvSearch(depth-1-R, -beta, -beta+1, mate,
-                storePV=false, checkFlag=1, realdepth=realdepth-1);
+            if (this.board.move_stack[this.board.move_stack.length-1] == NONE) {
+                // Allow only signe-null and double-null move, not more
+                no_null = true;
+            };
+            val = -this.pvSearch(depth-1-R, -beta, -beta+1, mate, 0,
+                false, 1, realdepth-1, no_null);
             this.board.pop(NONE);
             this.ply--;
             if (val >= beta) {
+                //console.log('+1');
                 RecordHash(this.board, depth, beta, hashBETA, hash_);
                 return beta;
             };
             // If null move pruning fails, we strore this information so we will
             // no loose time trying null move pruning in this position at same
             // or lower depth in the future.
-            RecordHash(this.board, depth, NONE, hash_NO_NULL, hash_);
+            RecordHash(this.board, depth, NONE, hash_NO_NULL, hash_ ^ 12345);
         };
 
         var legal     = 0;
@@ -2014,16 +2027,16 @@ class Search {
             if (fFoundPv) {
                 // If we found the PV, no need to do a full-window search
                 val = -this.pvSearch(depth-1, -alpha-1, -alpha, mate-1, 0,
-                    false, 0, realdepth-1);
+                    false, 0, realdepth-1,false);
                 if ((val > alpha) && (val < beta)) {
                     // If it appears that we found a better move than the
                     // previous PV one, do a normal re-search
                     val = -this.pvSearch(depth-1, -beta, -alpha, mate-1,
-                        pvNextIndex, storePV, 0, realdepth-1)
+                        pvNextIndex, storePV, 0, realdepth-1, true)
                 };
             } else {
                 val = -this.pvSearch(depth-1, -beta, -alpha, mate-1,
-                    pvNextIndex, storePV, 0, realdepth-1);
+                    pvNextIndex, storePV, 0, realdepth-1, false);
             };
 
             this.board.pop(move);
@@ -2102,7 +2115,8 @@ class Search {
 
         if (this.board.isCheck(turn)) {
             // Check-evaders extension
-            val = this.pvSearch(1, alpha, beta, mate-1, 0, false, -1);
+            val = this.pvSearch(1, alpha, beta, mate-1, 0, false, -1,
+                this.depth-this.ply, true);
             this.ply--;
             return val;
         };
