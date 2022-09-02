@@ -2319,7 +2319,7 @@ var UCI = readline.createInterface({
 
 const fs = require('fs');
 
-console.log('Réglisse-JS by Paul JF');
+console.log('Reglisse-JS by Paul JF');
 UCI.on('line', function(command){
 
     if (DEBUG) {
@@ -2327,7 +2327,7 @@ UCI.on('line', function(command){
     };
 
     if (command.split(' ')[0] == 'uci') {
-        console.log('id name Réglisse-JS\nid author Paul JF\n');
+        console.log('id name Reglisse-JS\nid author Paul JF\n');
         console.log('option name Clear Tables type button');
         console.log('option name Skill type spin default 20 min 0 max 20');
         console.log('option name Hash type spin default 128 min 4 max 256');
