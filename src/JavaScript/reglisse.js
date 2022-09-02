@@ -200,6 +200,8 @@ function isNumeric(s) {
     return !isNaN(s - parseFloat(s));
 };
 
+const countOccurrences = (arr, val)=>arr.reduce((a, v)=>(v===val ? a + 1: a),0);
+
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1867,14 +1869,14 @@ class Search {
             this.pv.push(0);
         };
         this.ply = board.move_stack.length;
-        this.selfdepth = 0;
+        this.selfdepth = 0,
+        this.hash = [0]; // To detect draw by 3-fold repetition
 
         // Time management
         this.timeout        = false;
         this.startTime      = new Date().getTime();
         this.time_to_search = time;
     };
-
 
     pvSearch(depth, alpha=-mateValue, beta=mateValue, mate=mateValue, pvIndex=0,
              storePV=true, checkFlag=0, realdepth=0, no_null=true) {
@@ -1919,12 +1921,18 @@ class Search {
             };
         };
 
+        if (this.is_draw()) {
+            return 0;
+        };
+
         if (depth <= 0) {
             // if depth is lower than 0, just do a quiescence search
             this.ply++;
+            this.hash.push(hash_);
             val = this.Quiescent(alpha, beta, mate-1);
             RecordHash(this.board, depth, val, hashEXACT, hash_);
             this.ply--;
+            this.hash.pop();
             return val;
         };
 
@@ -1944,8 +1952,10 @@ class Search {
         if ((value < beta) && !(isCheck || storePV)) {
             if (depth == 1) {
                 this.ply++;
+                this.hash.push(hash_);
                 var new_value = this.Quiescent(alpha, beta, mate-1);
                 this.ply--;
+                this.hash.pop();
                 value = Math.max(new_value, value);
                 RecordHash(this.board, depth, value, hashf, hash_);
                 return value;
@@ -1953,8 +1963,10 @@ class Search {
             value += 175;
             if ((value < beta) && (depth <= 3)) {
                 this.ply++;
+                this.hash.push(hash_);
                 var new_value = this.Quiescent(alpha, beta, mate-1);
                 this.ply--;
+                this.hash.pop();
                 if (new_value < beta) {
                     value = Math.max(new_value, value);
                     RecordHash(this.board, depth, value, hashf, hash_);
@@ -1984,6 +1996,7 @@ class Search {
             (static_eval > beta)) {
 
             this.ply++;
+            this.hash.push(hash_);
             this.board.push(NONE); // make a null move
             if (this.board.move_stack[this.board.move_stack.length-1] == NONE) {
                 // Allow only signe-null and double-null move, not more
@@ -1993,6 +2006,7 @@ class Search {
                 false, 1, realdepth-1, no_null);
             this.board.pop(NONE);
             this.ply--;
+            this.hash.pop();
             if (val >= beta) {
                 //console.log('+1');
                 RecordHash(this.board, depth, beta, hashBETA, hash_);
@@ -2013,6 +2027,7 @@ class Search {
         var pvNextIndex = pvIndex + realdepth;
 
         this.ply++;
+        this.hash.push(hash_);
         for (var move of ordering(this.board, this.ply,
             this.board.genPseudoLegalMoves())) {
 
@@ -2053,6 +2068,7 @@ class Search {
                     killers[this.ply][0] = move;
                 };
                 this.ply--;
+                this.hash.pop();
                 return beta;
             };
 
@@ -2090,6 +2106,7 @@ class Search {
         // End of line (and game) :
         if (!legal) {
             this.ply--;
+            this.hash.pop();
             if (isCheck) {
                 return -mate;
             };
@@ -2098,6 +2115,7 @@ class Search {
 
         RecordHash(this.board, depth, alpha, hashf, hash_, best_move)
         this.ply--;
+        this.hash.pop();
         return alpha;
 
     };
@@ -2198,6 +2216,13 @@ class Search {
         };
         return PV;
     };
+
+    is_draw() {
+        if (countOccurrences(this.hash, this.hash[this.ply]) >= 3) {
+            return true;
+        };
+        return false;
+    }
 
 };
 
@@ -2338,8 +2363,9 @@ var UCI = readline.createInterface({
 });
 
 const fs = require('fs');
+const { count } = require('console');
 
-console.log('Reglisse-JS by Paul JF');
+console.log('Reglisse-DEV by Paul JF');
 UCI.on('line', function(command){
 
     if (DEBUG) {
@@ -2347,7 +2373,7 @@ UCI.on('line', function(command){
     };
 
     if (command.split(' ')[0] == 'uci') {
-        console.log('id name Reglisse-JS\nid author Paul JF\n');
+        console.log('id name Reglisse-DEV\nid author Paul JF\n');
         console.log('option name Clear Tables type button');
         console.log('option name Skill type spin default 20 min 0 max 20');
         console.log('option name Hash type spin default 128 min 4 max 256');
