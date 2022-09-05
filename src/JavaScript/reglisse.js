@@ -571,6 +571,40 @@ class Board {
         this.move_stack.pop();
     };
 
+    push_NONE() {
+
+        // Flags update
+
+        // Ep update
+        this.ep.push(-1);
+        
+        // Castling rights update :
+        this.castling_rights.push(
+            this.castling_rights[this.castling_rights.length - 1]
+        );
+
+        this.turn = !this.turn;
+        this.move_stack.push(NONE);
+
+        // Move count update
+        var rule_50 = this.move_count[this.move_count.length - 1][0] + 1;
+        var move_count = this.move_count[this.move_count.length - 1][1];
+        if (this.turn) {     // change if Black just played, since we have
+            move_count++;  // already updated turn
+        }; 
+        this.move_count.push([rule_50, move_count]);
+    };
+
+    pop_NONE() {
+
+        // Update flags :
+        this.turn = !this.turn;
+        this.castling_rights.pop();
+        this.ep.pop();
+        this.move_count.pop();
+        this.move_stack.pop();
+    };
+
     attack(square, color) {
         // Determines if color attacks square. Used for example by legal moves
         // verifications
@@ -1886,7 +1920,7 @@ class Search {
         //    . 1 -> no check
         //    . 0 -> unknow
         //    .-1 -> is check
-        if (depth == this.depth) {
+        if (this.ply == 0) {
             realdepth = this.depth;
             no_null = true;
         };
@@ -1997,14 +2031,14 @@ class Search {
 
             this.ply++;
             this.hash.push(hash_);
-            this.board.push(NONE); // make a null move
+            this.board.push_NONE(); // make a null move
             if (this.board.move_stack[this.board.move_stack.length-1] == NONE) {
                 // Allow only signe-null and double-null move, not more
                 no_null = true;
             };
             val = -this.pvSearch(depth-1-R, -beta, -beta+1, mate, 0,
                 false, 1, realdepth-1, no_null);
-            this.board.pop(NONE);
+            this.board.pop_NONE();
             this.ply--;
             this.hash.pop();
             if (val >= beta) {
