@@ -1920,7 +1920,7 @@ class Search {
         //    . 1 -> no check
         //    . 0 -> unknow
         //    .-1 -> is check
-        if (this.ply == 0) {
+        if (depth == this.depth) {
             realdepth = this.depth;
             no_null = true;
         };
