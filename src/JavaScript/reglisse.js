@@ -2328,6 +2328,27 @@ function iterative_deepening(board, depth=4, time=false) {
 
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
+//                                   BOOK                                     //
+//                                                                            //
+//                         The book reader interface                          //
+//                                                                            //
+////////////////////////////////////////////////////////////////////////////////
+var bookFile = "book.txt";
+
+function move_from_book(board) {
+
+    var line = ""; // the move line of the current board
+    for (var move of board.move_stack) {
+        line += str_move(move) + " ";
+    };
+
+    
+};
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+//                                                                            //
 //                                    UCI                                     //
 //                                                                            //
 //                       The Universal Chess Interface                        //
