@@ -2398,7 +2398,7 @@ var book = new Book(bookFile);
 ////////////////////////////////////////////////////////////////////////////////
 var MoveOverhead = 10;
 var UCI_AnalyseMode = false;
-var OwnBook = true;
+var UseBook = true;
 
 function isNumeric(num){
     return !isNaN(num);
@@ -2482,7 +2482,7 @@ UCI.on('line', function(command){
         send_message('option name Move Overhead type spin default 10 ' + 
                     'min 0 max 10000');
         send_message('option name UCI_AnalyseMode type check default false')
-        send_message('option name OwnBook type check default true');
+        send_message('option name UseBook type check default true');
         send_message('option name Book File type string default '+DEFAULT_BOOK);
         send_message('uciok');
     } else if (command.split(' ')[0] == 'quit') {
@@ -2544,12 +2544,12 @@ UCI.on('line', function(command){
                          UCI_AnalyseMode.toString());
         };
 
-        if (command.includes('OwnBook') && command.includes('value')) {
-            OwnBook = (
+        if (command.includes('UseBook') && command.includes('value')) {
+            UseBook = (
                 command.split(' ')[command.split(' ').indexOf('value') + 1]
                  == 'true');
-            send_message('info string OwnBook set to ' +
-                         OwnBook.toString());
+            send_message('info string UseBook set to ' +
+                         UseBook.toString());
         };
 
         if (command.includes('Book File') && command.includes('value')) {
@@ -2568,10 +2568,10 @@ UCI.on('line', function(command){
         var movestogo = 0;
         var let_search = true;
 
-        if (OwnBook && !perft) {
+        if (UseBook && !perft) {
             move = book.move_from_book(board);
             move = board.readMove(move);
-            if (board.genLegal().includes(move)) {
+            if (board.genLegal().includes(move) && move != '') {
                 if (command.split(' ').includes('move')) {
                     board.push(move);
                 };

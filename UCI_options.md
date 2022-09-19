@@ -31,3 +31,9 @@ This is the time in milliseconds used to compensate the delay in the connection 
 
 ## UCI_AnalyseMode
 By default, when there is only one legal move, Réglisse returns it without analysing the position. This help to not loose time when playing games. But for analizing purpose, you can activate UCI_AnalyseMode, the "analyse mode". 
+
+## UseBook
+Decide if the engine should use an opening book. This is true by default. For the moment, book are not fully fonctionnal. Note that the suported book format is not usual, see [this file](./src/book_tools/readme.md) to know how to create your own Reglisse book.
+
+## Book File
+The book the engine should use. By default, the book is TSCP's book by [Tom Kerrigan](http://www.tckerrigan.com).
