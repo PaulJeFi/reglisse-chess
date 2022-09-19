@@ -1,5 +1,10 @@
 'use strict';
-const DEBUG = false;
+const DEBUG  = false;
+const NAME   = 'Reglisse-JS';
+const AUTHOR = 'Paul JF'
+
+const fs = require('fs');
+const { count } = require('console');
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
 //                               CONSTANTS                                    //
@@ -1397,11 +1402,11 @@ function PERFT(board, depth, indent='') {
             //var node = PERFT(board, depth-1, indent+'\t');
             var node = perft(board, depth-1);
             nodes += node;
-            console.log(indent + str_move(move) + ' : ' + node.toString());
+            send_message(indent + str_move(move) + ' : ' + node.toString());
         };
         board.pop(move)
     };
-    console.log('\n' + indent + 'Nodes searched : ' + nodes.toString());
+    send_message('\n' + indent + 'Nodes searched : ' + nodes.toString());
     return nodes;
 };
 
@@ -2042,7 +2047,7 @@ class Search {
             this.ply--;
             this.hash.pop();
             if (val >= beta) {
-                //console.log('+1');
+                //send_message('+1');
                 RecordHash(this.board, depth, beta, hashBETA, hash_);
                 return beta;
             };
@@ -2274,7 +2279,7 @@ function iterative_deepening(board, depth=4, time=false) {
     if (!UCI_AnalyseMode) {
         var moves = board.genLegal();
         if (moves.length == 1) {
-            console.log('bestmove ' + str_move(moves[0]));
+            send_message('bestmove ' + str_move(moves[0]));
             return [moves[0], valUNKNOW];
         };
     }; 
@@ -2302,7 +2307,7 @@ function iterative_deepening(board, depth=4, time=false) {
 
         if (!searcher.timeout) {
             total_nodes += searcher.nodes;
-            console.log('info depth ' + searcher.depth.toString() + ' score '
+            send_message('info depth ' + searcher.depth.toString() + ' score '
             + display_eval(evaluation) + ' seldepth ' +
             searcher.selfdepth.toString() +' nodes ' +
             total_nodes + ' time ' + elapsed.toString() + ' nps '
@@ -2311,12 +2316,12 @@ function iterative_deepening(board, depth=4, time=false) {
         };
         if (searcher.timeout) {
             const PV = old_searcher.collect_PV(false);
-            console.log('bestmove ' + str_move(PV[0]));
+            send_message('bestmove ' + str_move(PV[0]));
             return [PV, view * old_evaluation];
         }
         if ((elapsed >= time) || (curr_depth >= depth)) {
             const PV = searcher.collect_PV(false);
-            console.log('bestmove ' + str_move(PV[0]));
+            send_message('bestmove ' + str_move(PV[0]));
             return [PV, view * evaluation];
         };
 
@@ -2333,19 +2338,47 @@ function iterative_deepening(board, depth=4, time=false) {
 //                         The book reader interface                          //
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
-var bookFile = "book.txt";
+var bookFile = 'book.txt';
 
-function move_from_book(board) {
-
-    var line = ""; // the move line of the current board
-    for (var move of board.move_stack) {
-        line += str_move(move) + " ";
+class Book {
+    // The Book class
+    constructor(book_file) {
+        this.load(book_file);
     };
 
-    
+    load(book_file) {
+        this.book = []; // the book list, containing UCI lines
+        try {
+            this.book = fs.readFileSync('./' + book_file).toString()
+                        .split('\r\n');
+        } catch (error) {
+            send_message('info string opening book ' + book_file +' not found');
+        }; 
+    };
+
+    move_from_book(board) {
+
+        var line = ''; // the move line of the current board
+        for (var move of board.move_stack) {
+            line += str_move(move) + ' ';
+        };
+        line.slice(0, -1);
+        
+        for (var book_line of this.book) {
+            if (!book_line.includes(line)) {
+                continue;
+            };
+
+            if (book_line.indexOf(line) == 0) {
+                if (book_line.split(' ').length > line.split(' ').length) {
+                    return book_line.split(' ')[line.split(' ').length + 1];
+                };
+            };
+        };
+    };
 };
 
-
+var book = new Book(bookFile);
 
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
@@ -2359,6 +2392,13 @@ var UCI_AnalyseMode = false;
 
 function isNumeric(num){
     return !isNaN(num);
+};
+
+function send_message(message) {
+    if (DEBUG) {
+        fs.writeFile('./log.txt', message + '\n', { flag: 'a+' }, err => {});
+    };
+    console.log(message);
 };
 
 function pretty_fen(fen) {
@@ -2417,10 +2457,7 @@ var UCI = readline.createInterface({
   terminal: false
 });
 
-const fs = require('fs');
-const { count } = require('console');
-
-console.log('Reglisse-JS by Paul JF');
+send_message(NAME + ' by ' + AUTHOR);
 UCI.on('line', function(command){
 
     if (DEBUG) {
@@ -2428,29 +2465,29 @@ UCI.on('line', function(command){
     };
 
     if (command.split(' ')[0] == 'uci') {
-        console.log('id name Reglisse-JS\nid author Paul JF\n');
-        console.log('option name Clear Tables type button');
-        console.log('option name Skill type spin default 20 min 0 max 20');
-        console.log('option name Hash type spin default 128 min 4 max 256');
-        console.log('option name Move Overhead type spin default 10 ' + 
+        send_message('id name ' + NAME + '\nid author ' + AUTHOR + '\n');
+        send_message('option name Clear Tables type button');
+        send_message('option name Skill type spin default 20 min 0 max 20');
+        send_message('option name Hash type spin default 128 min 4 max 256');
+        send_message('option name Move Overhead type spin default 10 ' + 
                     'min 0 max 10000');
-        console.log('option name UCI_AnalyseMode type check default false')
-        // console.log('option name OwnBook type check default true');
-        console.log('uciok');
+        send_message('option name UCI_AnalyseMode type check default false')
+        // send_message('option name OwnBook type check default true');
+        send_message('uciok');
     } else if (command.split(' ')[0] == 'quit') {
         process.exit();
     } else if (command.split(' ')[0] == 'ucinewgame') {
         board = new Board();
         reset_tables();
     } else if (command.split(' ')[0] == 'isready') {
-        console.log('readyok')
+        send_message('readyok')
     } else if (command.split(' ')[0] == 'eval') {
         var view = board.turn ? 1 : -1;
-        console.log('Static eval : ' + evaluate(board).toString() * view +
+        send_message('Static eval : ' + evaluate(board).toString() * view +
                     ' cp');
     } else if (command.split(' ')[0] == 'd') {
-        console.log(pretty_fen(board.fen));
-        console.log('Key : ' + (hash(board)).toString(16).toUpperCase());
+        send_message(pretty_fen(board.fen));
+        send_message('Key : ' + (hash(board)).toString(16).toUpperCase());
     } else if (command.split(' ')[0] == 'move') {
         var move = board.readMove(command.split(' ')[1]);
         if (board.genLegal().includes(move)) {
@@ -2464,13 +2501,13 @@ UCI.on('line', function(command){
                command.split(' ')[1] == 'name') {
         if (command.includes('Clear') && command.includes('Tables')) {
             reset_tables();
-            console.log('info string Cleared Tables')
+            send_message('info string Cleared Tables')
         };
 
         if (command.includes('Skill') && command.includes('value')) {
             SKILL = parseInt(
                 command.split(' ')[command.split(' ').indexOf('value') + 1]);
-            console.log('info string Skill set to ' + SKILL.toString());
+            send_message('info string Skill set to ' + SKILL.toString());
             reset_tables();
         };
 
@@ -2478,13 +2515,13 @@ UCI.on('line', function(command){
             var HASH = parseInt(
                 command.split(' ')[command.split(' ').indexOf('value') + 1]);
             setHashSize(HASH);
-            console.log('info string TT size set to ' + ttSIZE.toString());
+            send_message('info string TT size set to ' + ttSIZE.toString());
         };
 
         if (command.includes('Move Overhead') && command.includes('value')) {
             MoveOverhead = parseInt(
                 command.split(' ')[command.split(' ').indexOf('value') + 1]);
-            console.log('info string Move Overhead set to ' +
+            send_message('info string Move Overhead set to ' +
                          MoveOverhead.toString());
         };
 
@@ -2492,7 +2529,7 @@ UCI.on('line', function(command){
             UCI_AnalyseMode = (
                 command.split(' ')[command.split(' ').indexOf('value') + 1]
                  == 'true');
-            console.log('info string UCI_AnalyseMode set to ' +
+            send_message('info string UCI_AnalyseMode set to ' +
                          UCI_AnalyseMode.toString());
         };
     } else if (command.split(' ')[0] == 'go') {
@@ -2541,7 +2578,7 @@ UCI.on('line', function(command){
             PERFT(board, perft);    
         }
         else {
-            console.log('info string searching for ' +
+            send_message('info string searching for ' +
                 (time >> 0).toString() + ' ms');
             var move = iterative_deepening(board, depth, time)[0][0];
             if (command.split(' ').includes('move')) {
