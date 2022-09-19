@@ -2338,7 +2338,8 @@ function iterative_deepening(board, depth=4, time=false) {
 //                         The book reader interface                          //
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
-var bookFile = 'book.txt';
+const DEFAULT_BOOK = 'TSCP_book.txt';
+var bookFile = DEFAULT_BOOK;
 
 class Book {
     // The Book class
@@ -2349,7 +2350,7 @@ class Book {
     load(book_file) {
         this.book = []; // the book list, containing UCI lines
         try {
-            this.book = fs.readFileSync('./' + book_file).toString()
+            this.book = fs.readFileSync(book_file).toString()
                         .split('\r\n');
         } catch (error) {
             send_message('info string opening book ' + book_file +' not found');
@@ -2363,6 +2364,7 @@ class Book {
             line += str_move(move) + ' ';
         };
         line.slice(0, -1);
+        var options = [];
         
         for (var book_line of this.book) {
             if (!book_line.includes(line)) {
@@ -2371,10 +2373,17 @@ class Book {
 
             if (book_line.indexOf(line) == 0) {
                 if (book_line.split(' ').length > line.split(' ').length) {
-                    return book_line.split(' ')[line.split(' ').length + 1];
+                    options.push(
+                        book_line.split(' ')[line.split(' ').length + 1]);
                 };
             };
         };
+        
+        if (options.length) {
+            return options[Math.floor(Math.random() * options.length)]
+        };
+
+        return '';
     };
 };
 
@@ -2389,6 +2398,7 @@ var book = new Book(bookFile);
 ////////////////////////////////////////////////////////////////////////////////
 var MoveOverhead = 10;
 var UCI_AnalyseMode = false;
+var OwnBook = true;
 
 function isNumeric(num){
     return !isNaN(num);
@@ -2472,7 +2482,8 @@ UCI.on('line', function(command){
         send_message('option name Move Overhead type spin default 10 ' + 
                     'min 0 max 10000');
         send_message('option name UCI_AnalyseMode type check default false')
-        // send_message('option name OwnBook type check default true');
+        send_message('option name OwnBook type check default true');
+        send_message('option name Book File type string default '+DEFAULT_BOOK);
         send_message('uciok');
     } else if (command.split(' ')[0] == 'quit') {
         process.exit();
@@ -2532,12 +2543,42 @@ UCI.on('line', function(command){
             send_message('info string UCI_AnalyseMode set to ' +
                          UCI_AnalyseMode.toString());
         };
+
+        if (command.includes('OwnBook') && command.includes('value')) {
+            OwnBook = (
+                command.split(' ')[command.split(' ').indexOf('value') + 1]
+                 == 'true');
+            send_message('info string OwnBook set to ' +
+                         OwnBook.toString());
+        };
+
+        if (command.includes('Book File') && command.includes('value')) {
+            bookFile = 
+                    command.split(' ')[command.split(' ').indexOf('value') + 1];
+            send_message('info string Book File set to ' +
+                         bookFile);
+            book = new Book(bookFile);
+        };
+
     } else if (command.split(' ')[0] == 'go') {
         var depth = 3;
         var time  = false;
         var inc   = 0;
         var perft = false;
         var movestogo = 0;
+        var let_search = true;
+
+        if (OwnBook && !perft) {
+            move = book.move_from_book(board);
+            move = board.readMove(move);
+            if (board.genLegal().includes(move)) {
+                if (command.split(' ').includes('move')) {
+                    board.push(move);
+                };
+                send_message('bestmove ' + str_move(move));
+                let_search = false;
+            };
+        };
 
         if (command.includes('movestogo')) {
             movestogo = parseInt(
@@ -2576,7 +2617,7 @@ UCI.on('line', function(command){
         };
         if (perft) {
             PERFT(board, perft);    
-        }
+        } else if (!let_search) {}
         else {
             send_message('info string searching for ' +
                 (time >> 0).toString() + ' ms');
