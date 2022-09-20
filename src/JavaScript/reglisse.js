@@ -2097,7 +2097,8 @@ class Search {
 
             if (val >= beta) { // beta cutoff
                 RecordHash(this.board, depth, beta, hashBETA, hash_, move);
-                if (!(move & 0b0_1_111_000_0000000_0000000)) {
+                if (!(move & 0b0_1_111_000_0000000_0000000) &&
+                   (killers[this.ply][0] != move)) {
                     // If the move is not a capture one, let's store it as a
                     // killer move. The idea is that if this move create a beta
                     // cutoff now, it can also create a beta cutoff on other
