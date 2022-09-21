@@ -240,6 +240,7 @@ class Board {
         this.board           = EMPTY_BOARD.slice();
         this.castling_rights = [];
         this.move_count      = [0, 0];
+        this.startpos        = fen;
 
         fen = fen.split(' '); // So it will be easier do dissect it
 
@@ -2362,6 +2363,9 @@ class Book {
 
     move_from_book(board) {
 
+        if (board.startpos != STARTING_FEN) {
+            return '0000';
+        };
         var line = ''; // the move line of the current board
         for (var move of board.move_stack) {
             line += str_move(move) + ' ';
