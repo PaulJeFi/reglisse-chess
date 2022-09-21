@@ -2354,7 +2354,7 @@ class Book {
         this.book = []; // the book list, containing UCI lines
         try {
             this.book = fs.readFileSync(book_file).toString()
-                        .split('\r\n');
+                        .split('\n');
         } catch (error) {
             send_message('info string opening book ' + book_file +' not found');
         }; 
@@ -2386,7 +2386,7 @@ class Book {
             return options[Math.floor(Math.random() * options.length)]
         };
 
-        return '';
+        return '0000';
     };
 };
 
