@@ -1347,7 +1347,7 @@ class Board {
         return moves;
     };
 
-    readMove(move) {
+    readMove(move, quiet=false) {
         // Convert UCI move to encoded move (int)
 
         for (var Move of this.genLegal()) {
@@ -1355,8 +1355,10 @@ class Board {
                 return Move;
             };
         };
-
-        console.error('Illegal move :' + move);
+        if (!quiet) {
+            console.error('Illegal move : ' + move);
+        };
+        return 0;
     };
 };
 
@@ -2502,7 +2504,7 @@ UCI.on('line', function(command){
         send_message('Key : ' + (hash(board)).toString(16).toUpperCase());
     } else if (command.split(' ')[0] == 'move') {
         var move = board.readMove(command.split(' ')[1]);
-        if (board.genLegal().includes(move)) {
+        if (move != 0) {
             board.push(move);
         };
     } else if (command.split(' ')[0] == 'undo') {
@@ -2571,8 +2573,8 @@ UCI.on('line', function(command){
 
         if (UseBook && !perft) {
             move = book.move_from_book(board);
-            move = board.readMove(move);
-            if (board.genLegal().includes(move) && move != '') {
+            move = board.readMove(move, true);
+            if (move != 0) {
                 if (command.split(' ').includes('move')) {
                     board.push(move);
                 };
@@ -2650,7 +2652,7 @@ UCI.on('line', function(command){
                 command.split(' ').length)) {
 
                 move = board.readMove(move);
-                if (board.genLegal().includes(move)) {
+                if (move != 0) {
                     board.push(move);
                 } else {
                     break;
