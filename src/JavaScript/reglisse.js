@@ -1349,7 +1349,7 @@ class Board {
 
     readMove(move, quiet=false) {
         // Convert UCI move to encoded move (int)
-
+        move = move.toLowerCase();
         for (var Move of this.genLegal()) {
             if (str_move(Move) == move) {
                 return Move;
