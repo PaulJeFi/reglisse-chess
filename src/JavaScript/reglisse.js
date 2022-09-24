@@ -1759,6 +1759,8 @@ function reset_tables() {
     };
 };
 
+reset_tables();
+
 function setHashSize(Mb) {
     // Set the hash size (thanks to WukongJS)
 
@@ -1768,8 +1770,6 @@ function setHashSize(Mb) {
     ttSIZE = (Mb * 0x100000 / 20)>>0;
     reset_tables();
 };
-
-reset_tables();
 
 // MVV_LVA[attacker][victim]
 const MVV_LVA = [
@@ -2050,7 +2050,6 @@ class Search {
             this.ply--;
             this.hash.pop();
             if (val >= beta) {
-                //send_message('+1');
                 RecordHash(this.board, depth, beta, hashBETA, hash_);
                 return beta;
             };
