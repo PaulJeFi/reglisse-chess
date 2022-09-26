@@ -1350,7 +1350,11 @@ class Board {
 
     readMove(move, quiet=false) {
         // Convert UCI move to encoded move (int)
-        move = move.toLowerCase();
+        try {
+            move = move.toLowerCase();
+        } catch {
+            return 0;
+        };
         for (var Move of this.genLegal()) {
             if (str_move(Move) == move) {
                 return Move;
@@ -1912,7 +1916,7 @@ class Search {
         };
         this.ply = board.move_stack.length;
         this.selfdepth = 0,
-        this.hash = [0]; // To detect draw by 3-fold repetition
+        this.hash = [hash(this.board)]; // To detect draw by 3-fold repetition
 
         // Time management
         this.timeout        = false;
