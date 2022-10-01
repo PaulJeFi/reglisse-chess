@@ -46,4 +46,4 @@ Decide if the engine should use an opening book. This is true by default. For th
 The book the engine should use. By default, the book is TSCP's book by [Tom Kerrigan](http://www.tckerrigan.com).
 
 ## Show HashFull
-This otpion is set to false by default. If true, it give the hashfull number, in permile, showing how the TT table is full. If this value is too hight, it is recommended to clear the tables (Clear Tables option) or to increase TT Sise (Hash option). Warning : activating this option can make the engine slower.
+This otpion is set to false by default. If true, it give the hashfull number, in permile, showing how the TT table is full. If this value is too hight, it is recommended to clear the tables (Clear Tables option) or to increase TT Size (Hash option). Warning : activating this option can make the engine slower.
