@@ -3,14 +3,18 @@
 When you type ```uci``` while using Réglisse in the console, you see the following text :
 
 ```
-id name Réglisse-JS
+id name Reglisse-JS
 id author Paul JF
 
+option name UCI_EngineAbout type string default Reglisse-JS by Paul JF, see https://github.com/PaulJeFi/reglisse-chess      
 option name Clear Tables type button
 option name Skill type spin default 20 min 0 max 20
 option name Hash type spin default 128 min 4 max 256
 option name Move Overhead type spin default 10 min 0 max 10000
 option name UCI_AnalyseMode type check default false
+option name UseBook type check default true
+option name Book File type string default TSCP_book.txt
+option name Show HashFull type check default false
 uciok
 ```
 
