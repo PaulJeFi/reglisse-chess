@@ -17,6 +17,9 @@ uciok
 This text shows the differents options availables in Réglisse, and are handled by your GUI.
 This is a guide to understand the différents options.
 
+## UCI_EngineAbout
+This option has not to be changed, it is just a little informational text about the engine.
+
 ## Clear Tables
 Clear the Hash Table and differents other tables (History Heuristic, Killer Moves).
 
@@ -37,3 +40,6 @@ Decide if the engine should use an opening book. This is true by default. For th
 
 ## Book File
 The book the engine should use. By default, the book is TSCP's book by [Tom Kerrigan](http://www.tckerrigan.com).
+
+## Show HashFull
+This otpion is set to false by default. If true, it give the hashfull number, in permile, showing how the TT table is full. If this value is too hight, it is recommended to clear the tables (Clear Tables option) or to increase TT Sise (Hash option). Warning : activating this option can make the engine slower.

@@ -2,6 +2,8 @@
 const DEBUG  = false;
 const NAME   = 'Reglisse-JS';
 const AUTHOR = 'Paul JF'
+const ABOUT  = NAME + ' by ' + AUTHOR + ', see ' +
+               'https://github.com/PaulJeFi/reglisse-chess';
 
 const fs = require('fs');
 const { count } = require('console');
@@ -2281,6 +2283,20 @@ function display_eval(evaluation) {
     return 'cp ' + evaluation;
 };
 
+function hashfull() {
+    if (showHashFull) {
+        var counter = ttSIZE;
+        for (var i of tt) {
+            if (i.key == 0 && i.noNull == false && i.depth  == 0 && i.value  == 0 &&
+                i.flag == 0 && i.move == 0) {
+                counter--;
+            };
+        };
+        return ' hashfull ' + ((1000 * counter / ttSIZE) >> 0).toString();
+    };
+    return '';
+};
+
 function iterative_deepening(board, depth=4, time=false) {
 
     if (!UCI_AnalyseMode) {
@@ -2318,8 +2334,8 @@ function iterative_deepening(board, depth=4, time=false) {
             + display_eval(evaluation) + ' seldepth ' +
             searcher.selfdepth.toString() +' nodes ' +
             total_nodes + ' time ' + elapsed.toString() + ' nps '
-            +((total_nodes / (elapsed / 1000)) >> 0).toString()
-            + ' pv ' + searcher.collect_PV());
+            + ((total_nodes / (elapsed / 1000)) >> 0).toString()
+            + ' pv ' + searcher.collect_PV() + hashfull());
         };
         if (searcher.timeout) {
             const PV = old_searcher.collect_PV(false);
@@ -2409,6 +2425,7 @@ var book = new Book(bookFile);
 var MoveOverhead = 10;
 var UCI_AnalyseMode = false;
 var UseBook = true;
+var showHashFull = false;
 
 function isNumeric(num){
     return !isNaN(num);
@@ -2486,6 +2503,7 @@ UCI.on('line', function(command){
 
     if (command.split(' ')[0] == 'uci') {
         send_message('id name ' + NAME + '\nid author ' + AUTHOR + '\n');
+        send_message('option name UCI_EngineAbout type string default '+ABOUT);
         send_message('option name Clear Tables type button');
         send_message('option name Skill type spin default 20 min 0 max 20');
         send_message('option name Hash type spin default 128 min 4 max 256');
@@ -2494,6 +2512,7 @@ UCI.on('line', function(command){
         send_message('option name UCI_AnalyseMode type check default false')
         send_message('option name UseBook type check default true');
         send_message('option name Book File type string default '+DEFAULT_BOOK);
+        send_message('option name Show HashFull type check default false');
         send_message('uciok');
     } else if (command.split(' ')[0] == 'quit') {
         process.exit();
@@ -2532,7 +2551,8 @@ UCI.on('line', function(command){
             reset_tables();
         };
 
-        if (command.includes('Hash') && command.includes('value')) {
+        if (command.includes('Hash') && command.includes('value') &&
+           !command.includes('HashFull')) {
             var HASH = parseInt(
                 command.split(' ')[command.split(' ').indexOf('value') + 1]);
             setHashSize(HASH);
@@ -2568,6 +2588,14 @@ UCI.on('line', function(command){
             send_message('info string Book File set to ' +
                          bookFile);
             book = new Book(bookFile);
+        };
+
+        if (command.includes('Show HashFull') && command.includes('value')) {
+            showHashFull = (
+                command.split(' ')[command.split(' ').indexOf('value') + 1]
+                 == 'true');
+            send_message('info string Show HashFull set to ' +
+                         showHashFull.toString());
         };
 
     } else if (command.split(' ')[0] == 'go') {
