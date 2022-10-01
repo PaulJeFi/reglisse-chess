@@ -28,7 +28,7 @@ This option has not to be changed, it is just a little informational text about 
 Clear the Hash Table and differents other tables (History Heuristic, Killer Moves).
 
 ## Skill
-The Skill of the engine. The range value is from 0 to 20, where 20 correspond to Réglisse playing at full strength, and 0 is the lower strength. The default value is 20.
+The Skill of the engine. The range value is from 0 to 20, where 20 correspond to Réglisse playing at full strength, and 0 is the lowest strength. The default value is 20.
 
 ## Hash
 The size of the Hash Table in megabyte (MB). This value should be in integer between 4 and 256, the default value is 128. It is recommanded to set a bigger Hash Size when using a longer time controll.
