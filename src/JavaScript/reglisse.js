@@ -2602,7 +2602,7 @@ UCI.on('line', function(command){
         var depth = 3;
         var time  = false;
         var inc   = 0;
-        var perft = false;
+        var perft = command.includes('perft');
         var movestogo = 0;
         var let_search = true;
 
@@ -2622,7 +2622,7 @@ UCI.on('line', function(command){
             movestogo = parseInt(
                 command.split(' ')[command.split(' ').indexOf('movestogo')+1]);
         };
-        if (command.includes('perft')) {
+        if (perft) {
             perft = parseInt(
                 command.split(' ')[command.split(' ').indexOf('perft') + 1]);
         } else if (command.includes('depth')) {
