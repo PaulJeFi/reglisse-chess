@@ -6,7 +6,6 @@ const ABOUT  = NAME + ' by ' + AUTHOR + ', see ' +
                'https://github.com/PaulJeFi/reglisse-chess';
 
 const fs = require('fs');
-const { count } = require('console');
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
 //                               CONSTANTS                                    //
