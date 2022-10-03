@@ -15,6 +15,7 @@ option name UCI_AnalyseMode type check default false
 option name UseBook type check default true
 option name Book File type string default TSCP_book.txt
 option name Show HashFull type check default false
+option name Depth Infinite type spin default 5 min 1 max 30
 uciok
 ```
 
@@ -47,3 +48,6 @@ The book the engine should use. By default, the book is TSCP's book by [Tom Kerr
 
 ## Show HashFull
 This otpion is set to false by default. If true, it give the hashfull number, in permile, showing how the TT table is full. If this value is too hight, it is recommended to clear the tables (Clear Tables option) or to increase TT Size (Hash option). Warning : activating this option can make the engine slower.
+
+## Depth Infinite
+If using a GUI and using Reglisse as an analysing tool at infinite depth, the real depth is limited because Reglisse does not reponds to the ```stop``` command. So this option is to set the depth to search at "infinite" search. The default value is 5 (most of the time really fast), and has to be a value between 1 and 30.

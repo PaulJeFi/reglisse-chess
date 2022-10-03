@@ -2286,7 +2286,7 @@ function hashfull() {
     if (showHashFull) {
         var counter = ttSIZE;
         for (var i of tt) {
-            if (i.key == 0 && i.noNull == false && i.depth  == 0 && i.value  == 0 &&
+            if (i.key == 0 && i.noNull == false && i.depth == 0 && i.value==0 &&
                 i.flag == 0 && i.move == 0) {
                 counter--;
             };
@@ -2296,7 +2296,7 @@ function hashfull() {
     return '';
 };
 
-function iterative_deepening(board, depth=4, time=false) {
+function iterative_deepening(board, depth=5, time=false) {
 
     if (!UCI_AnalyseMode) {
         var moves = board.genLegal();
@@ -2421,10 +2421,11 @@ var book = new Book(bookFile);
 //                       The Universal Chess Interface                        //
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
-var MoveOverhead = 10;
+var MoveOverhead    = 10;
 var UCI_AnalyseMode = false;
-var UseBook = true;
-var showHashFull = false;
+var UseBook         = true;
+var showHashFull    = false;
+var infiniteDepth   = 5;
 
 function isNumeric(num){
     return !isNaN(num);
@@ -2507,11 +2508,13 @@ UCI.on('line', function(command){
         send_message('option name Skill type spin default 20 min 0 max 20');
         send_message('option name Hash type spin default 128 min 4 max 256');
         send_message('option name Move Overhead type spin default 10 ' + 
-                    'min 0 max 10000');
+                     'min 0 max 10000');
         send_message('option name UCI_AnalyseMode type check default false')
         send_message('option name UseBook type check default true');
         send_message('option name Book File type string default '+DEFAULT_BOOK);
         send_message('option name Show HashFull type check default false');
+        send_message('option name Depth Infinite type spin default 5 min 1 ' + 
+                     'max 30');
         send_message('uciok');
     } else if (command.split(' ')[0] == 'quit') {
         process.exit();
@@ -2597,8 +2600,15 @@ UCI.on('line', function(command){
                          showHashFull.toString());
         };
 
+        if (command.includes('Depth Infinite') && command.includes('value')) {
+            infiniteDepth = parseInt(
+                command.split(' ')[command.split(' ').indexOf('value') + 1]);
+            send_message('info string Depth Infinite set to ' +
+                         infiniteDepth.toString());
+        };
+
     } else if (command.split(' ')[0] == 'go') {
-        var depth = 3;
+        var depth = infiniteDepth;
         var time  = false;
         var inc   = 0;
         var perft = command.includes('perft');
@@ -2657,7 +2667,7 @@ UCI.on('line', function(command){
         } else if (!let_search) {}
         else {
             send_message('info string searching for ' +
-                (time >> 0).toString() + ' ms');
+                (time >> 0).toString() + ' ms at depth ' + depth.toString());
             var move = iterative_deepening(board, depth, time)[0][0];
             if (command.split(' ').includes('move')) {
                 board.push(move);
