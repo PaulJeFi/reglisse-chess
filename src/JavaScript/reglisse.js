@@ -1,7 +1,7 @@
 'use strict';
 const DEBUG  = false;
 const NAME   = 'Reglisse-JS';
-const AUTHOR = 'Paul JF'
+const AUTHOR = 'Paul JF';
 const ABOUT  = NAME + ' by ' + AUTHOR + ', see ' +
                'https://github.com/PaulJeFi/reglisse-chess';
 
@@ -155,7 +155,7 @@ function encode_move(from_, to_, promotion=NONE, captured=NONE, ep=NONE) {
     // A function that encodes moves
 
     var move  = 0
-    move |= to_
+    move |= to_;
     move |= from_     << 7;
     move |= promotion << 14;
     move |= captured  << 17;
@@ -252,7 +252,7 @@ class Board {
         if (fen[1] == 'w') {this.turn = true} else {this.turn = false};
 
         // 1.2 : castling rights
-        this.castling_rights = [0]
+        this.castling_rights = [0];
         for (var char = 0; char < fen[2].length; char++) {
             if (fen[2][char] == 'K') {this.castling_rights[0] |= 0b0001};
             if (fen[2][char] == 'Q') {this.castling_rights[0] |= 0b0010};
@@ -268,7 +268,7 @@ class Board {
         this.move_count = [[Number(fen[4]), Number(fen[5])]];
 
         // Step 2 : place pieces
-        var mail_index = 21
+        var mail_index = 21;
         for (var char = 0; char < fen[0].length; char++) {
 
             // Error preventer trick
@@ -620,7 +620,7 @@ class Board {
 
         // Attacked by Knight
         for (var offset of KNIGHT_VECTOR) {
-            attacker = square + offset
+            attacker = square + offset;
             if(this.board[attacker] == (color | KNIGHT)) {
                 return true;
             };
@@ -628,7 +628,7 @@ class Board {
 
         // Attacked by King
         for (var offset of SLIDING_VECTORS[QUEEN]) {
-            attacker = square + offset
+            attacker = square + offset;
             if (this.board[attacker] == (color | KING)) {
                 return true;
             };
@@ -637,7 +637,7 @@ class Board {
         // Attacked by Bishop or Queen
         for (var offset of BISHOP_VECTOR) { 
             for (var i=1; i<=8; i++) {
-                attacker = square + offset * i
+                attacker = square + offset * i;
                 if (this.board[attacker] == (color | BISHOP)) {
                     return true;
                 };
@@ -654,7 +654,7 @@ class Board {
         // Attacked by Rook or Queen
         for (var offset of ROOK_VECTOR) { 
             for (var i=1; i<=8; i++) {
-                attacker = square + offset * i
+                attacker = square + offset * i;
                 if (this.board[attacker] == (color | ROOK)) {
                     return true;
                 };
@@ -1310,7 +1310,7 @@ class Board {
 
                 // King
                 else if (piece == KING) {
-                    var opp = opp_color(color)
+                    var opp = opp_color(color);
 
                     // Normal king moves : remenber, king can't capture with a
                     // castling move.
@@ -1633,7 +1633,7 @@ function evaluate(board) {
         piece = 0;
 
     for (var sq=0; sq<64; sq++) {
-        piece = board.board[mailbox64[sq]]
+        piece = board.board[mailbox64[sq]];
         if (piece != EMPTY) {
             mg[piece_color(piece) >> 4] += mg_table[PIECES[piece]][sq];
             eg[piece_color(piece) >> 4] += eg_table[PIECES[piece]][sq];
@@ -1826,7 +1826,7 @@ function RecordHash(board, depth, val, flag, hash_=false, best_move=0) {
     entry.value = val;
     entry.flag  = flag;
     entry.depth = depth;
-    entry.move  = best_move
+    entry.move  = best_move;
     tt[hash_ % ttSIZE] = entry;
 };
 
@@ -2160,7 +2160,7 @@ class Search {
             return 0;
         };
 
-        RecordHash(this.board, depth, alpha, hashf, hash_, best_move)
+        RecordHash(this.board, depth, alpha, hashf, hash_, best_move);
         this.ply--;
         this.hash.pop();
         return alpha;
@@ -2347,7 +2347,7 @@ function iterative_deepening(board, depth=5, time=false) {
     var evaluation = 0;
     var old_evaluation = 0;
     var elapsed = 0;
-    var view = board.turn ? 1 : -1
+    var view = board.turn ? 1 : -1;
     var total_nodes = 0;
     var WDL = '';
     var WDL_v = [0, 0, 0];
