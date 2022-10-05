@@ -2372,12 +2372,12 @@ function iterative_deepening(board, depth=5, time=false) {
                 WDL = ' wdl ' + WDL_v[0].toString() + ' ' + WDL_v[1].toString()
                       + ' ' + WDL_v[2].toString();
             }
-            send_message('info depth ' + searcher.depth.toString() + ' score '
-            + display_eval(evaluation) + ' seldepth ' +
-            searcher.selfdepth.toString() +' nodes ' +
-            total_nodes + ' time ' + elapsed.toString() + ' nps '
-            + ((total_nodes / (elapsed / 1000)) >> 0).toString()
-            + WDL + ' pv ' + searcher.collect_PV() + hashfull());
+            send_message('info depth ' + searcher.depth.toString() +
+            ' seldepth ' + searcher.selfdepth.toString() + ' score '
+            + display_eval(evaluation) + WDL +' nodes ' +
+            total_nodes + ' nps ' 
+            + ((total_nodes / (elapsed / 1000)) >> 0).toString() + ' time ' +
+            elapsed.toString() + ' pv ' + searcher.collect_PV() + hashfull());
         };
         if (searcher.timeout) {
             const PV = old_searcher.collect_PV(false);
