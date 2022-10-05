@@ -202,8 +202,8 @@ function check_number(integer, digit, place) {
     if (integer % 10 == digit) {return true;} else {return false;};
 };
 
-function isNumeric(s) {
-    return !isNaN(s - parseFloat(s));
+function isNumeric(num){
+    return !isNaN(num);
 };
 
 const countOccurrences = (arr, val)=>arr.reduce((a, v)=>(v===val ? a + 1: a),0);
@@ -2296,6 +2296,41 @@ function hashfull() {
     return '';
 };
 
+
+// The win rate model returns the probability (per mille) of winning given an
+// eval and a game-ply. The model is taken from Stockfish 15 (file uci.cpp).
+function win_rate_model(v, ply) {
+
+    // The model captures only up to 240 plies, so limit input (and rescale)
+    var m = Math.min(240, ply) / 64.0;
+
+    // Coefficients of a 3rd order polynomial fit based on fishtest data
+    // for two parameters needed to transform eval to the argument of a
+    // logistic function.
+    var as = [-1.17202460e-01, 5.94729104e-01, 1.12065546e+01, 1.22606222e+02];
+    var bs = [-1.79066759,  11.30759193, -17.43677612,  36.47147479];
+    var a = (((as[0] * m + as[1]) * m + as[2]) * m) + as[3];
+    var b = (((bs[0] * m + bs[1]) * m + bs[2]) * m) + bs[3];
+
+    // Transform eval to centipawns with limited range
+    var x = Math.min(Math.max((100 * v) / eg_value[eg_value.length - 1],
+                              -2000.0), 2000.0);
+
+    // Return win rate in per mille (rounded to nearest)
+    return (0.5 + 1000 / (1 + Math.exp((a - x) / b))) >> 0;
+};
+
+// wdl() report WDL statistics given an evaluation and a game ply, based on
+// Stockfish 15 model (file uci.cpp).
+
+function wdl(v, ply) {
+
+    var wdl_w = win_rate_model( v, ply);
+    var wdl_l = win_rate_model(-v, ply);
+    var wdl_d = 1000 - wdl_w - wdl_l;
+    return [wdl_w, wdl_d, wdl_l];
+};
+
 function iterative_deepening(board, depth=5, time=false) {
 
     if (!UCI_AnalyseMode) {
@@ -2314,6 +2349,8 @@ function iterative_deepening(board, depth=5, time=false) {
     var elapsed = 0;
     var view = board.turn ? 1 : -1
     var total_nodes = 0;
+    var WDL = '';
+    var WDL_v = [0, 0, 0];
 
     if (time) {
         depth = MAX_PLY;
@@ -2329,12 +2366,18 @@ function iterative_deepening(board, depth=5, time=false) {
 
         if (!searcher.timeout) {
             total_nodes += searcher.nodes;
+            WDL = '';
+            if (UCI_ShowWDL) {
+                WDL_v = wdl(evaluation, board.move_stack.length);
+                WDL = ' wdl ' + WDL_v[0].toString() + ' ' + WDL_v[1].toString()
+                      + ' ' + WDL_v[2].toString();
+            }
             send_message('info depth ' + searcher.depth.toString() + ' score '
             + display_eval(evaluation) + ' seldepth ' +
             searcher.selfdepth.toString() +' nodes ' +
             total_nodes + ' time ' + elapsed.toString() + ' nps '
             + ((total_nodes / (elapsed / 1000)) >> 0).toString()
-            + ' pv ' + searcher.collect_PV() + hashfull());
+            + WDL + ' pv ' + searcher.collect_PV() + hashfull());
         };
         if (searcher.timeout) {
             const PV = old_searcher.collect_PV(false);
@@ -2426,10 +2469,7 @@ var UCI_AnalyseMode = false;
 var UseBook         = true;
 var showHashFull    = false;
 var infiniteDepth   = 5;
-
-function isNumeric(num){
-    return !isNaN(num);
-};
+var UCI_ShowWDL     = false;
 
 function send_message(message) {
     if (DEBUG) {
@@ -2509,7 +2549,8 @@ UCI.on('line', function(command){
         send_message('option name Hash type spin default 128 min 4 max 256');
         send_message('option name Move Overhead type spin default 10 ' + 
                      'min 0 max 10000');
-        send_message('option name UCI_AnalyseMode type check default false')
+        send_message('option name UCI_AnalyseMode type check default false');
+        send_message('option name UCI_ShowWDL type check default false');
         send_message('option name UseBook type check default true');
         send_message('option name Book File type string default '+DEFAULT_BOOK);
         send_message('option name Show HashFull type check default false');
@@ -2574,6 +2615,14 @@ UCI.on('line', function(command){
                  == 'true');
             send_message('info string UCI_AnalyseMode set to ' +
                          UCI_AnalyseMode.toString());
+        };
+
+        if (command.includes('UCI_ShowWDL') && command.includes('value')) {
+            UCI_ShowWDL = (
+                command.split(' ')[command.split(' ').indexOf('value') + 1]
+                 == 'true');
+            send_message('info string UCI_ShowWDL set to ' +
+                         UCI_ShowWDL.toString());
         };
 
         if (command.includes('UseBook') && command.includes('value')) {

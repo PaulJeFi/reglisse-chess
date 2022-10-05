@@ -12,6 +12,7 @@ option name Skill type spin default 20 min 0 max 20
 option name Hash type spin default 128 min 4 max 256
 option name Move Overhead type spin default 10 min 0 max 10000
 option name UCI_AnalyseMode type check default false
+option name UCI_ShowWDL type check default false
 option name UseBook type check default true
 option name Book File type string default TSCP_book.txt
 option name Show HashFull type check default false
@@ -39,6 +40,9 @@ This is the time in milliseconds used to compensate the delay in the connection 
 
 ## UCI_AnalyseMode
 By default, when there is only one legal move, Réglisse returns it without analysing the position. This help to not loose time when playing games. But for analizing purpose, you can activate UCI_AnalyseMode, the "analyse mode". 
+
+## UCI_ShowWDL
+Default is false. If enabled, the engine shows the estimated chance of winning, draw and loosing the game.
 
 ## UseBook
 Decide if the engine should use an opening book. This is true by default. For the moment, book are not fully fonctionnal. Note that the suported book format is not usual, see [this file](./src/book_tools/readme.md) to know how to create your own Reglisse book.
