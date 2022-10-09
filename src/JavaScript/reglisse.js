@@ -1652,6 +1652,10 @@ function evaluate(board) {
                  (SKILL != 20 ? skill() : 0))>> 0;
 };
 
+// Add small random value to draw positions to add dynamism to the engine.
+function value_draw(depth, nodes) {
+    return depth < 4 ? 0 : (2 * nodes % 2) - 1;
+};
 
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
@@ -1969,7 +1973,7 @@ class Search {
         };
 
         if (this.is_draw()) {
-            return 0;
+            return value_draw(depth, this.nodes);
         };
 
         if (depth <= 0) {
@@ -2157,7 +2161,7 @@ class Search {
             if (isCheck) {
                 return -mate;
             };
-            return 0;
+            return value_draw(depth, this.nodes);
         };
 
         RecordHash(this.board, depth, alpha, hashf, hash_, best_move);
