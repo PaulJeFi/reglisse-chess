@@ -2540,7 +2540,10 @@ var UCI = readline.createInterface({
 
 send_message(NAME + ' by ' + AUTHOR);
 UCI.on('line', function(command){
+    read_command(command);
+});
 
+function read_command(command) {
     if (DEBUG) {
         fs.writeFile('./log.txt', command + '\n', { flag: 'a+' }, err => {});
     };
@@ -2552,14 +2555,14 @@ UCI.on('line', function(command){
         send_message('option name Skill type spin default 20 min 0 max 20');
         send_message('option name Hash type spin default 128 min 4 max 256');
         send_message('option name Move Overhead type spin default 10 ' + 
-                     'min 0 max 10000');
+                    'min 0 max 10000');
         send_message('option name UCI_AnalyseMode type check default false');
         send_message('option name UCI_ShowWDL type check default false');
         send_message('option name UseBook type check default true');
         send_message('option name Book File type string default '+DEFAULT_BOOK);
         send_message('option name Show HashFull type check default false');
         send_message('option name Depth Infinite type spin default 5 min 1 ' + 
-                     'max 30');
+                    'max 30');
         send_message('uciok');
     } else if (command.split(' ')[0] == 'quit') {
         process.exit();
@@ -2585,7 +2588,7 @@ UCI.on('line', function(command){
             board.pop(board.move_stack[board.move_stack.length - 1]);
         };
     } else if (command.split(' ')[0] == 'setoption' &&
-               command.split(' ')[1] == 'name') {
+            command.split(' ')[1] == 'name') {
         if (command.includes('Clear') && command.includes('Tables')) {
             reset_tables();
             send_message('info string Cleared Tables')
@@ -2599,7 +2602,7 @@ UCI.on('line', function(command){
         };
 
         if (command.includes('Hash') && command.includes('value') &&
-           !command.includes('HashFull')) {
+        !command.includes('HashFull')) {
             var HASH = parseInt(
                 command.split(' ')[command.split(' ').indexOf('value') + 1]);
             setHashSize(HASH);
@@ -2610,54 +2613,54 @@ UCI.on('line', function(command){
             MoveOverhead = parseInt(
                 command.split(' ')[command.split(' ').indexOf('value') + 1]);
             send_message('info string Move Overhead set to ' +
-                         MoveOverhead.toString());
+                        MoveOverhead.toString());
         };
 
         if (command.includes('UCI_AnalyseMode') && command.includes('value')) {
             UCI_AnalyseMode = (
                 command.split(' ')[command.split(' ').indexOf('value') + 1]
-                 == 'true');
+                == 'true');
             send_message('info string UCI_AnalyseMode set to ' +
-                         UCI_AnalyseMode.toString());
+                        UCI_AnalyseMode.toString());
         };
 
         if (command.includes('UCI_ShowWDL') && command.includes('value')) {
             UCI_ShowWDL = (
                 command.split(' ')[command.split(' ').indexOf('value') + 1]
-                 == 'true');
+                == 'true');
             send_message('info string UCI_ShowWDL set to ' +
-                         UCI_ShowWDL.toString());
+                        UCI_ShowWDL.toString());
         };
 
         if (command.includes('UseBook') && command.includes('value')) {
             UseBook = (
                 command.split(' ')[command.split(' ').indexOf('value') + 1]
-                 == 'true');
+                == 'true');
             send_message('info string UseBook set to ' +
-                         UseBook.toString());
+                        UseBook.toString());
         };
 
         if (command.includes('Book File') && command.includes('value')) {
             bookFile = 
                     command.split(' ')[command.split(' ').indexOf('value') + 1];
             send_message('info string Book File set to ' +
-                         bookFile);
+                        bookFile);
             book = new Book(bookFile);
         };
 
         if (command.includes('Show HashFull') && command.includes('value')) {
             showHashFull = (
                 command.split(' ')[command.split(' ').indexOf('value') + 1]
-                 == 'true');
+                == 'true');
             send_message('info string Show HashFull set to ' +
-                         showHashFull.toString());
+                        showHashFull.toString());
         };
 
         if (command.includes('Depth Infinite') && command.includes('value')) {
             infiniteDepth = parseInt(
                 command.split(' ')[command.split(' ').indexOf('value') + 1]);
             send_message('info string Depth Infinite set to ' +
-                         infiniteDepth.toString());
+                        infiniteDepth.toString());
         };
 
     } else if (command.split(' ')[0] == 'go') {
@@ -2697,7 +2700,7 @@ UCI.on('line', function(command){
         } else if (board.turn) {
             if (command.includes('wtime')) {
                 time = parseInt(
-                   command.split(' ')[command.split(' ').indexOf('wtime') + 1]);
+                command.split(' ')[command.split(' ').indexOf('wtime') + 1]);
                 if (command.includes('winc')) {
                     inc = parseInt(command.split(' ')
                         [command.split(' ').indexOf('winc') + 1]);
@@ -2707,7 +2710,7 @@ UCI.on('line', function(command){
         } else if (!board.turn) {
             if (command.includes('btime')) {
                 time = parseInt(
-                   command.split(' ')[command.split(' ').indexOf('btime') + 1]);
+                command.split(' ')[command.split(' ').indexOf('btime') + 1]);
                 if (command.includes('binc')) {
                     inc = parseInt(command.split(' ')
                         [command.split(' ').indexOf('binc') + 1]);
@@ -2757,4 +2760,4 @@ UCI.on('line', function(command){
             };
         };
     };
-});
+};
