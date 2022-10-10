@@ -5,7 +5,7 @@ const AUTHOR = 'Paul JF';
 const ABOUT  = NAME + ' by ' + AUTHOR + ', see ' +
                'https://github.com/PaulJeFi/reglisse-chess';
 
-const fs = require('fs');
+import { readFileSync, writeFile } from 'fs';
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
 //                               CONSTANTS                                    //
@@ -2419,7 +2419,7 @@ class Book {
     load(book_file) {
         this.book = []; // the book list, containing UCI lines
         try {
-            this.book = fs.readFileSync(book_file).toString()
+            this.book = readFileSync(book_file).toString()
                         .split('\n');
         } catch (error) {
             send_message('info string opening book ' + book_file +' not found');
@@ -2477,7 +2477,7 @@ var UCI_ShowWDL     = false;
 
 function send_message(message) {
     if (DEBUG) {
-        fs.writeFile('./log.txt', message + '\n', { flag: 'a+' }, err => {});
+        writeFile('./log.txt', message + '\n', { flag: 'a+' }, err => {});
     };
     console.log(message);
 };
@@ -2531,8 +2531,8 @@ function manage(time, board, inc, movestogo) {
 var board = new Board();
 
 process.stdin.setEncoding('utf-8');
-var readline = require('readline');
-var UCI = readline.createInterface({
+import { createInterface } from 'readline';
+var UCI = createInterface({
   input: process.stdin,
   output: process.stdout,
   terminal: false
@@ -2545,7 +2545,7 @@ UCI.on('line', function(command){
 
 function read_command(command) {
     if (DEBUG) {
-        fs.writeFile('./log.txt', command + '\n', { flag: 'a+' }, err => {});
+        writeFile('./log.txt', command + '\n', { flag: 'a+' }, err => {});
     };
 
     if (command.split(' ')[0] == 'uci') {
