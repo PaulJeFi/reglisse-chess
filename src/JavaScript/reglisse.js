@@ -1648,8 +1648,8 @@ function evaluate(board) {
         mgPhase = Math.min(gamePhase, 24),
         egPhase = 24 - mgPhase;
     
-        return (((mgScore * mgPhase + egScore * egPhase) / 24) + 
-                 (SKILL != 20 ? skill() : 0))>> 0;
+    return (((mgScore * mgPhase + egScore * egPhase) / 24) + 
+            (SKILL != 20 ? skill() : 0))>> 0;
 };
 
 // Add small random value to draw positions to add dynamism to the engine.
@@ -2273,7 +2273,7 @@ class Search {
             return true;
         };
         return false;
-    }
+    };
 
 };
 
@@ -2283,7 +2283,7 @@ function display_eval(evaluation) {
             return 'mate ' + ((evaluation >= 0 ? 1 : -1) * Math.ceil((mateValue
                 - Math.abs(evaluation))/2)).toString();
         };
-    return 'cp ' + evaluation;
+    return 'cp ' + evaluation.toString();
 };
 
 function hashfull() {
