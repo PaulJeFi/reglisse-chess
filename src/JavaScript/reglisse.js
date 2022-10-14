@@ -1920,8 +1920,14 @@ class Search {
             this.pv.push(0);
         };
         this.ply = board.move_stack.length;
-        this.selfdepth = 0,
-        this.hash = [hash(this.board)]; // To detect draw by 3-fold repetition
+        this.selfdepth = 0;
+
+        var temp_board = new Board(board.startpos);
+        this.hash = [hash(temp_board)]; // To detect draw by 3-fold repetition
+        for (var move of board.move_stack) {
+            temp_board.push(move);
+            this.hash.push(hash(temp_board));
+        };
 
         // Time management
         this.timeout        = false;
