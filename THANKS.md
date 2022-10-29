@@ -6,7 +6,7 @@ In this file I will thank people without whom this project would not be possible
 - DynaSchool, who taught me to code, who showed to me his support in this project, who encouraged my scientific curiosity, and also who plays chess with me
 - [chessprogramming.org](http://www.chessprogramming.org), the best website about chessprogramming
 - Anatole, who endured all my stupidities
-- Anjelina
+- Anjelina, for being part of my reasons to live
 - Térence, a genius coding friend
 - Tharushan, a friend who knows how to code and often plays chess with me. He helped me developping the evaluation function, and he is the main tester of Réglisse.
 - Théodora, a great friend who encouraged me during this project and let me use her cat's name
