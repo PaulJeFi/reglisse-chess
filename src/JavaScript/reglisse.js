@@ -2087,7 +2087,7 @@ class Search {
         var best_move = 0;
         // PV store in itialisation :
         if (storePV) {
-            this.pv[pvIndex] = 0 // no PV yet
+            this.pv[pvIndex] = 0; // no PV yet
         };
         var pvNextIndex = pvIndex + realdepth;
 
