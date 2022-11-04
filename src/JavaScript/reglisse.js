@@ -1,6 +1,6 @@
 'use strict';
 const DEBUG  = false;
-const NAME   = 'Reglisse-JS';
+const NAME   = 'Reglisse-DEV';
 const AUTHOR = 'Paul JF';
 const ABOUT  = NAME + ' by ' + AUTHOR + ', see ' +
                'https://github.com/PaulJeFi/reglisse-chess';
@@ -393,7 +393,7 @@ class Board {
         if (SQUARE_NAMES[Math.abs(this.ep[this.ep.length -1])] == '') {
             fen += ' - '
         }
-        else {fen += ' ' + SQUARE_NAMES[Math.abs(this.ep[this.ep.length -1])]};
+        else {fen +=' '+SQUARE_NAMES[Math.abs(this.ep[this.ep.length -1])]+' '};
 
         // Step 2.4 : move count
         fen += this.move_count[this.move_count.length -1][0].toString() + ' ' 
@@ -1362,7 +1362,7 @@ class Board {
             };
         };
         if (!quiet) {
-            console.error('Illegal move : ' + move);
+            send_message('Illegal move : ' + move);
         };
         return 0;
     };
@@ -1770,6 +1770,19 @@ function reset_tables() {
 
 reset_tables();
 
+function history_new_iteration() {
+    // Divide by 8 hystory heuristic, to not have a too big behaviour of history
+    // on new search depth
+    for (var i=0; i<2; i++) {
+        history_h.push([]);
+        for (var j=0; j<98+1; j++) {
+            for (var k=0; k<98+1; k++) {
+                history_h[i][j][k] = history_h[i][j][k] / 8;
+            };
+        };
+    };
+};
+
 function setHashSize(Mb) {
     // Set the hash size (thanks to WukongJS)
 
@@ -1936,7 +1949,8 @@ class Search {
     };
 
     pvSearch(depth, alpha=-mateValue, beta=mateValue, mate=mateValue, pvIndex=0,
-             storePV=true, checkFlag=0, realdepth=0, no_null=true) {
+             storePV=true, checkFlag=0, realdepth=0, no_null=true,
+             PV_right=false) {
         // Principal Variation Search
         
         // checkFlag : some infomration about check
@@ -1957,11 +1971,11 @@ class Search {
             hash_    = hash(this.board);
         
         var val = 0;
-        
+
         if (!(Math.abs(beta - alpha) > 1) || (checkFlag == -1)) { // Probe TT if
                                                         // node is not a PV node
             // If checkFlag = -1 we know this is a QS-node
-            val = ProbeHash(this.board, depth, alpha, beta, hash_);
+            val = ProbeHash(this.board, realdepth, alpha, beta, hash_);
             if (val == hash_NO_NULL) {
                 no_null = true;
             } else if (val != valUNKNOW) {
@@ -1984,11 +1998,9 @@ class Search {
 
         if (depth <= 0) {
             // if depth is lower than 0, just do a quiescence search
-            this.ply++;
             this.hash.push(hash_);
             val = this.Quiescent(alpha, beta, mate-1);
-            RecordHash(this.board, depth, val, hashEXACT, hash_);
-            this.ply--;
+            RecordHash(this.board, realdepth, val, hashEXACT, hash_);
             this.hash.pop();
             return val;
         };
@@ -2003,30 +2015,27 @@ class Search {
             isCheck = this.board.isCheck(turn);
         };
 
-        // Razoring (old pruning method, today quite unused because risky ...)
-        var static_eval = evaluate(this.board);
+        var static_eval = evaluate(this.board); // static eval of the board
+
+        // Razoring (old pruning method, today quite unused because risky ...)  
         var value = static_eval + 125;
         if ((value < beta) && !(isCheck || storePV)) {
             if (depth == 1) {
-                this.ply++;
                 this.hash.push(hash_);
                 var new_value = this.Quiescent(alpha, beta, mate-1);
-                this.ply--;
                 this.hash.pop();
                 value = Math.max(new_value, value);
-                RecordHash(this.board, depth, value, hashf, hash_);
+                RecordHash(this.board, realdepth, value, hashf, hash_);
                 return value;
             };
             value += 175;
             if ((value < beta) && (depth <= 3)) {
-                this.ply++;
                 this.hash.push(hash_);
                 var new_value = this.Quiescent(alpha, beta, mate-1);
-                this.ply--;
                 this.hash.pop();
                 if (new_value < beta) {
                     value = Math.max(new_value, value);
-                    RecordHash(this.board, depth, value, hashf, hash_);
+                    RecordHash(this.board, realdepth, value, hashf, hash_);
                     return value;
                 };
             };
@@ -2038,16 +2047,16 @@ class Search {
             (!(this.board.move_stack[this.board.move_stack.length - 1] &
                 0b0_1_111_111_0000000_0000000)) &&
                 (this.board.genLegal().length) && (val < alpha - 320)) {
-            RecordHash(this.board, depth, alpha, hashf, hash_);
+            RecordHash(this.board, realdepth, alpha, hashf, hash_);
             return alpha;
         };
-        
+
         // Null move pruning (double null move pruning)
         // The idea is that if we don't play and our position is still good for
         // us if our opponent plays, there is no needing to see what's happends
         // if we play since it will probably be good for us. This is a bad idea
         // in zugzwang.
-        if (!isCheck && !storePV && !no_null &&
+        if (!isCheck && !no_null && // !storePV &&
             //(this.board.move_stack.length >= 1) &&
             (this.board.move_stack[this.board.move_stack.length - 2] != NONE) &&
             (static_eval > beta)) {
@@ -2060,18 +2069,18 @@ class Search {
                 no_null = true;
             };
             val = -this.pvSearch(depth-1-R, -beta, -beta+1, mate, 0,
-                false, 1, realdepth-1, no_null);
+                false, 1, realdepth-1, no_null, true);
             this.board.pop_NONE();
             this.ply--;
             this.hash.pop();
             if (val >= beta) {
-                RecordHash(this.board, depth, beta, hashBETA, hash_);
+                RecordHash(this.board, realdepth, beta, hashBETA, hash_);
                 return beta;
             };
             // If null move pruning fails, we strore this information so we will
             // no loose time trying null move pruning in this position at same
             // or lower depth in the future.
-            RecordHash(this.board, depth, NONE, hash_NO_NULL, hash_ ^ 12345);
+            RecordHash(this.board, realdepth, NONE, hash_NO_NULL,hash_ ^ 12345);
         };
 
         var legal     = 0;
@@ -2098,22 +2107,22 @@ class Search {
             if (fFoundPv) {
                 // If we found the PV, no need to do a full-window search
                 val = -this.pvSearch(depth-1, -alpha-1, -alpha, mate-1, 0,
-                    false, 0, realdepth-1,false);
+                    false, 0, realdepth-1, false, PV_right);
                 if ((val > alpha) && (val < beta)) {
                     // If it appears that we found a better move than the
                     // previous PV one, do a normal re-search
                     val = -this.pvSearch(depth-1, -beta, -alpha, mate-1,
-                        pvNextIndex, storePV, 0, realdepth-1, true)
+                        pvNextIndex, storePV, 0, realdepth-1, true, PV_right)
                 };
             } else {
                 val = -this.pvSearch(depth-1, -beta, -alpha, mate-1,
-                    pvNextIndex, storePV, 0, realdepth-1, false);
+                    pvNextIndex, storePV, 0, realdepth-1, false, PV_right);
             };
 
             this.board.pop(move);
 
             if (val >= beta) { // beta cutoff
-                RecordHash(this.board, depth, beta, hashBETA, hash_, move);
+                RecordHash(this.board, realdepth, beta, hashBETA, hash_, move);
                 if (!(move & 0b0_1_111_000_0000000_0000000) &&
                    (killers[this.ply][0] != move)) {
                     // If the move is not a capture one, let's store it as a
@@ -2140,14 +2149,20 @@ class Search {
                     // positions, and searching bests moves first saves time in
                     // search.
                     history_h[this.board.turn >> 0][(move & 0b0_1111111_0000000)
-                        >> 7][move & 0b0_1111111] += depth ** 2;
+                        >> 7][move & 0b0_1111111] += realdepth ** 2;
                 };
 
                 // PV store :
-                if (storePV) {
+                if (storePV && !PV_right) {
                     this.pv[pvIndex] = move;
                 };
-                best_move = move // To store the best move in TT
+                best_move = move; // To store the best move in TT
+
+                // Reset LMR if we found a better move. Can also play the role
+                // of an extension, if move ordering is really bad.
+                if (!(isCheck  || storePV)) {
+                    depth += 0.2 * legal;
+                };
             };
 
             // Late move reduction. With move ordering, latest moves are 
@@ -2170,7 +2185,7 @@ class Search {
             return value_draw(depth, this.nodes);
         };
 
-        RecordHash(this.board, depth, alpha, hashf, hash_, best_move);
+        RecordHash(this.board, realdepth, alpha, hashf, hash_, best_move);
         this.ply--;
         this.hash.pop();
         return alpha;
@@ -2190,8 +2205,10 @@ class Search {
 
         if (this.board.isCheck(turn)) {
             // Check-evaders extension
+            // Here, we do not want to collect the PV or try NMP, so some flags
+            // are set to true.
             val = this.pvSearch(1, alpha, beta, mate-1, 0, false, -1,
-                this.depth-this.ply, true);
+                this.depth-this.ply, true, true);
             this.ply--;
             return val;
         };
@@ -2227,6 +2244,10 @@ class Search {
                 this.timeout = true;
                 return 0;
             };
+        };
+
+        if (this.is_draw()) {
+            return value_draw(0, this.nodes);
         };
 
         for (var move of ordering(this.board, this.ply,
@@ -2275,7 +2296,8 @@ class Search {
     };
 
     is_draw() {
-        if (countOccurrences(this.hash, this.hash[this.ply]) >= 3) {
+        if (this.board.rule_50 >= 50 || 
+            countOccurrences(this.hash, this.hash[this.ply]) >= 3) {
             return true;
         };
         return false;
@@ -2370,8 +2392,10 @@ function iterative_deepening(board, depth=5, time=false) {
     
     for (var curr_depth=1; curr_depth<=depth; curr_depth++) {
 
+        history_new_iteration();
         searcher = new Search(board, curr_depth, time - elapsed);
-        evaluation = searcher.pvSearch(searcher.depth);
+        evaluation = searcher.pvSearch(searcher.depth, -mateValue, mateValue,
+                                       mateValue, 0, true, 0, 0, true, false);
         elapsed = (new Date().getTime()) - startTime;
 
         if (!searcher.timeout) {
