@@ -2232,7 +2232,7 @@ class Search {
         };
 
         // hard cutoff
-        if (this.depth*2 < this.ply - this.depth*2) {
+        if (this.depth*4 < this.ply) {
             this.ply--;
             return alpha; // or val ?
         };
