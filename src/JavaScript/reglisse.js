@@ -1,6 +1,6 @@
 'use strict';
 const DEBUG  = false;
-const NAME   = 'Reglisse-DEV';
+const NAME   = 'Reglisse-JS';
 const AUTHOR = 'Paul JF';
 const ABOUT  = NAME + ' by ' + AUTHOR + ', see ' +
                'https://github.com/PaulJeFi/reglisse-chess';
