@@ -1,6 +1,6 @@
-# UCI Options in Réglisse
+# UCI Options in Reglisse
 
-When you type ```uci``` while using Réglisse in the console, you see the following text :
+When you type ```uci``` while using Reglisse in the console, you see the following text :
 
 ```
 id name Reglisse-JS
@@ -20,8 +20,8 @@ option name Depth Infinite type spin default 5 min 1 max 30
 uciok
 ```
 
-This text shows the differents options availables in Réglisse, and are handled by your GUI.
-This is a guide to understand the différents options.
+This text shows the differents options availables in Reglisse, and are handled by your GUI.
+This is a guide to understand the differents options.
 
 ## UCI_EngineAbout
 This option has not to be changed, it is just a little informational text about the engine.
@@ -30,19 +30,19 @@ This option has not to be changed, it is just a little informational text about 
 Clear the Hash Table and differents other tables (History Heuristic, Killer Moves).
 
 ## Skill
-The Skill of the engine. The range value is from 0 to 20, where 20 correspond to Réglisse playing at full strength, and 0 is the lowest strength. The default value is 20.
+The Skill of the engine. The range value is from 0 to 20, where 20 corresponds to Reglisse playing at full strength, and 0 is the lowest strength. The default value is 20.
 
 ## Hash
-The size of the Hash Table in megabyte (MB). This value should be in integer between 4 and 256, the default value is 128. It is recommanded to set a bigger Hash Size when using a longer time controll.
+The size of the Hash Table in megabyte (MB). This value should be an integer between 4 and 256, the default value is 128. It is recommanded to set a bigger Hash Size when using a longer time control.
 
 ## Move Overhead
 This is the time in milliseconds used to compensate the delay in the connection with the GUI or the network. The default value is 10 ms, and can be set from 0 ms to 10000 ms (10 s).
 
 ## UCI_AnalyseMode
-By default, when there is only one legal move, Réglisse returns it without analysing the position. This help to not loose time when playing games. But for analizing purpose, you can activate UCI_AnalyseMode, the "analyse mode". 
+By default, when there is only one legal move, Reglisse returns it without analysing the position. This help to not loose time when playing games. But for analizing purpose, you can activate UCI_AnalyseMode, the "analyse mode". 
 
 ## UCI_ShowWDL
-Default is false. If enabled, the engine shows the estimated chance of winning, draw and loosing the game.
+Default is false. If enabled, the engine shows the estimated chance of winning, drawing and loosing the game.
 
 ## UseBook
 Decide if the engine should use an opening book. This is true by default. For the moment, book are not fully fonctionnal. Note that the suported book format is not usual, see [this file](./src/book_tools/readme.md) to know how to create your own Reglisse book.
@@ -51,7 +51,7 @@ Decide if the engine should use an opening book. This is true by default. For th
 The book the engine should use. By default, the book is TSCP's book by [Tom Kerrigan](http://www.tckerrigan.com).
 
 ## Show HashFull
-This otpion is set to false by default. If true, it give the hashfull number, in permile, showing how the TT table is full. If this value is too hight, it is recommended to clear the tables (Clear Tables option) or to increase TT Size (Hash option). Warning : activating this option can make the engine slower.
+This otpion is set to false by default. If true, it give the hashfull number, in permile, showing how the TT table is full. If this value is too hight, it is recommanded to clear the tables (Clear Tables option) or to increase TT Size (Hash option). Warning : activating this option can make the engine a little bit slower.
 
 ## Depth Infinite
-If using a GUI and using Reglisse as an analysing tool at infinite depth, the real depth is limited because Reglisse does not reponds to the ```stop``` command. So this option is to set the depth to search at "infinite" search. The default value is 5 (most of the time really fast), and has to be a value between 1 and 30.
+If using a GUI and using Reglisse as an analysing tool at infinite depth, the real depth is limited because Reglisse does not responds to the ```stop``` command. So this option is to set the depth to search at "infinite" search. The default value is 5 (most of the time really fast), and has to be a value between 1 and 30 (searching by time and not by depth is recommanded).
