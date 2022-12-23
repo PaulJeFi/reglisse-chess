@@ -1,6 +1,7 @@
-import time
+import math
 from urllib.parse import urljoin
 import logging
+from timer import Timer
 
 logger = logging.getLogger(__name__)
 
@@ -12,8 +13,9 @@ class Challenge:
         self.variant = c_info["variant"]["key"]
         self.perf_name = c_info["perf"]["name"]
         self.speed = c_info["speed"]
-        self.increment = c_info.get("timeControl", {}).get("increment", -1)
-        self.base = c_info.get("timeControl", {}).get("limit", -1)
+        self.increment = c_info.get("timeControl", {}).get("increment")
+        self.base = c_info.get("timeControl", {}).get("limit")
+        self.days = c_info.get("timeControl", {}).get("daysPerTurn")
         self.challenger = c_info.get("challenger") or {}
         self.challenger_title = self.challenger.get("title")
         self.challenger_is_bot = self.challenger_title == "BOT"
@@ -24,34 +26,43 @@ class Challenge:
         self.from_self = self.challenger_name == user_profile["username"]
 
     def is_supported_variant(self, challenge_cfg):
-        return self.variant in challenge_cfg["variants"]
+        return self.variant in challenge_cfg.variants
 
     def is_supported_time_control(self, challenge_cfg):
-        speeds = challenge_cfg["time_controls"]
-        increment_max = challenge_cfg.get("max_increment", 180)
-        increment_min = challenge_cfg.get("min_increment", 0)
-        base_max = challenge_cfg.get("max_base", 315360000)
-        base_min = challenge_cfg.get("min_base", 0)
+        speeds = challenge_cfg.time_controls
+        increment_max = challenge_cfg.max_increment
+        increment_min = challenge_cfg.min_increment
+        base_max = challenge_cfg.max_base
+        base_min = challenge_cfg.min_base
+        days_max = challenge_cfg.max_days
+        days_min = challenge_cfg.min_days
 
-        if self.increment < 0:
-            return self.speed in speeds
+        if self.speed not in speeds:
+            return False
 
-        return (self.speed in speeds
-                and increment_min <= self.increment <= increment_max
-                and base_min <= self.base <= base_max)
+        if self.base is not None and self.increment is not None:
+            # Normal clock game
+            return (increment_min <= self.increment <= increment_max
+                    and base_min <= self.base <= base_max)
+        elif self.days is not None:
+            # Correspondence game
+            return days_min <= self.days <= days_max
+        else:
+            # Unlimited game
+            return days_max == math.inf
 
     def is_supported_mode(self, challenge_cfg):
-        return ("rated" if self.rated else "casual") in challenge_cfg["modes"]
+        return ("rated" if self.rated else "casual") in challenge_cfg.modes
 
-    def is_supported(self, config):
+    def is_supported(self, config, recent_bot_challenges):
         try:
             if self.from_self:
                 return True, None
 
-            if not config.get("accept_bot", False) and self.challenger_is_bot:
+            if not config.accept_bot and self.challenger_is_bot:
                 return False, "noBot"
 
-            if config.get("only_bot", False) and not self.challenger_is_bot:
+            if config.only_bot and not self.challenger_is_bot:
                 return False, "onlyBot"
 
             if not self.is_supported_time_control(config):
@@ -62,6 +73,17 @@ class Challenge:
 
             if not self.is_supported_mode(config):
                 return False, ("casual" if self.rated else "rated")
+
+            if self.challenger_name in config.block_list:
+                return False, "generic"
+
+            max_recent_challenges = config.max_recent_bot_challenges
+            if self.challenger_is_bot and max_recent_challenges is not None:
+                # Filter out old challenges
+                recent_bot_challenges[self.challenger_name] = [
+                        timer for timer in recent_bot_challenges[self.challenger_name] if not timer.is_expired()]
+                if len(recent_bot_challenges[self.challenger_name]) >= max_recent_challenges:
+                    return False, "later"
 
             return True, None
 
@@ -108,10 +130,9 @@ class Game:
         self.me = self.white if self.is_white else self.black
         self.opponent = self.black if self.is_white else self.white
         self.base_url = base_url
-        self.white_starts = self.initial_fen == "startpos" or self.initial_fen.split()[1] == "w"
-        self.abort_at = time.time() + abort_time
-        self.terminate_at = time.time() + (self.clock_initial + self.clock_increment) / 1000 + abort_time + 60
-        self.disconnect_at = time.time()
+        self.abort_time = Timer(abort_time)
+        self.terminate_time = Timer((self.clock_initial + self.clock_increment) / 1000 + abort_time + 60)
+        self.disconnect_time = Timer(0)
 
     def url(self):
         return urljoin(self.base_url, f"{self.id}/{self.my_color}")
@@ -121,18 +142,18 @@ class Game:
 
     def ping(self, abort_in, terminate_in, disconnect_in):
         if self.is_abortable():
-            self.abort_at = time.time() + abort_in
-        self.terminate_at = time.time() + terminate_in
-        self.disconnect_at = time.time() + disconnect_in
+            self.abort_time = Timer(abort_in)
+        self.terminate_time = Timer(terminate_in)
+        self.disconnect_time = Timer(disconnect_in)
 
     def should_abort_now(self):
-        return self.is_abortable() and time.time() > self.abort_at
+        return self.is_abortable() and self.abort_time.is_expired()
 
     def should_terminate_now(self):
-        return time.time() > self.terminate_at
+        return self.terminate_time.is_expired()
 
     def should_disconnect_now(self):
-        return time.time() > self.disconnect_at
+        return self.disconnect_time.is_expired()
 
     def my_remaining_seconds(self):
         return (self.state["wtime"] if self.is_white else self.state["btime"]) / 1000
@@ -146,7 +167,6 @@ class Game:
 
 class Player:
     def __init__(self, json):
-        self.id = json.get("id")
         self.name = json.get("name")
         self.title = json.get("title")
         self.rating = json.get("rating")

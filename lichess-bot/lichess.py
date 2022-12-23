@@ -6,6 +6,7 @@ from http.client import RemoteDisconnected
 import backoff
 import logging
 import time
+from engine_wrapper import MAX_CHAT_MESSAGE_LEN
 
 ENDPOINTS = {
     "profile": "/api/account",
@@ -24,7 +25,8 @@ ENDPOINTS = {
     "online_bots": "/api/bot/online",
     "challenge": "/api/challenge/{}",
     "cancel": "/api/challenge/{}/cancel",
-    "status": "/api/users/status"
+    "status": "/api/users/status",
+    "public_data": "/api/user/{}"
 }
 
 
@@ -41,7 +43,7 @@ def rate_limit_check(response):
 
 # docs: https://lichess.org/api
 class Lichess:
-    def __init__(self, token, url, version, logging_level):
+    def __init__(self, token, url, version, logging_level, max_retries):
         self.version = version
         self.header = {
             "Authorization": f"Bearer {token}"
@@ -51,6 +53,7 @@ class Lichess:
         self.session.headers.update(self.header)
         self.set_user_agent("?")
         self.logging_level = logging_level
+        self.max_retries = max_retries
 
     def is_final(exception):
         return isinstance(exception, HTTPError) and exception.response.status_code < 500
@@ -97,6 +100,12 @@ class Lichess:
                              params={"offeringDraw": str(move.draw_offered).lower()})
 
     def chat(self, game_id, room, text):
+        if len(text) > MAX_CHAT_MESSAGE_LEN:
+            logger.warn(f"This chat message is {len(text)} characters, which is longer "
+                        f"than the maximum of {MAX_CHAT_MESSAGE_LEN}. It will not be sent.")
+            logger.warn(f"Message: {text}")
+            return {}
+
         payload = {"room": room, "text": text}
         return self.api_post(ENDPOINTS["chat"].format(game_id), data=payload)
 
@@ -105,11 +114,11 @@ class Lichess:
 
     def get_event_stream(self):
         url = urljoin(self.baseUrl, ENDPOINTS["stream_event"])
-        return requests.get(url, headers=self.header, stream=True)
+        return requests.get(url, headers=self.header, stream=True, timeout=15)
 
     def get_game_stream(self, game_id):
         url = urljoin(self.baseUrl, ENDPOINTS["stream"].format(game_id))
-        return requests.get(url, headers=self.header, stream=True)
+        return requests.get(url, headers=self.header, stream=True, timeout=15)
 
     def accept_challenge(self, challenge_id):
         return self.api_post(ENDPOINTS["accept"].format(challenge_id))
@@ -127,8 +136,11 @@ class Lichess:
         return profile
 
     def get_ongoing_games(self):
-        ongoing_games = self.api_get(ENDPOINTS["playing"])["nowPlaying"]
-        return ongoing_games
+        try:
+            ongoing_games = self.api_get(ENDPOINTS["playing"])["nowPlaying"]
+            return ongoing_games
+        except Exception:
+            return []
 
     def resign(self, game_id):
         self.api_post(ENDPOINTS["resign"].format(game_id))
@@ -141,9 +153,12 @@ class Lichess:
         return self.api_get(ENDPOINTS["export"].format(game_id), get_raw_text=True)
 
     def get_online_bots(self):
-        online_bots = self.api_get(ENDPOINTS["online_bots"], get_raw_text=True)
-        online_bots = list(filter(bool, online_bots.split("\n")))
-        return list(map(lambda bot: json.loads(bot), online_bots))
+        try:
+            online_bots = self.api_get(ENDPOINTS["online_bots"], get_raw_text=True)
+            online_bots = list(filter(bool, online_bots.split("\n")))
+            return list(map(json.loads, online_bots))
+        except Exception:
+            return []
 
     def challenge(self, username, params):
         return self.api_post(ENDPOINTS["challenge"].format(username),
@@ -155,13 +170,21 @@ class Lichess:
                              raise_for_status=False)
 
     def online_book_get(self, path, params=None):
-        return self.session.get(path, timeout=2, params=params).json()
+        @backoff.on_exception(backoff.constant,
+                              (RemoteDisconnected, ConnectionError, HTTPError, ReadTimeout),
+                              max_time=60,
+                              max_tries=self.max_retries,
+                              interval=0.1,
+                              giveup=self.is_final,
+                              backoff_log_level=logging.DEBUG,
+                              giveup_log_level=logging.DEBUG)
+        def online_book_get():
+            return self.session.get(path, timeout=2, params=params).json()
+        return online_book_get()
 
     def is_online(self, user_id):
         user = self.api_get(ENDPOINTS["status"], params={"ids": user_id})
         return user and user[0].get("online")
 
-    def reset_connection(self):
-        self.session.close()
-        self.session = requests.Session()
-        self.session.headers.update(self.header)
+    def get_public_data(self, user_name):
+        return self.api_get(ENDPOINTS["public_data"].format(user_name))

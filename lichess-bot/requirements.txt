@@ -1,9 +1,9 @@
-chess==1.9.2
-PyYAML>=5.4.1
-requests>=2.25.1
-backoff==2.1.2
-rich==12.5.1
+chess==1.9.4
+PyYAML==6.0
+requests==2.28.1
+backoff==2.2.1
+rich==12.6.0
 
 # Requirements for tests
-pytest==7.1.2
+pytest==7.2.0
 pytest-timeout==2.1.0
