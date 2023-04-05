@@ -9,7 +9,7 @@ engine:                      # Engine settings.
   ponder: false               # Think on opponent's time.
 
   polyglot:
-    enabled: true           # Activate polyglot book.
+    enabled: false           # Activate polyglot book.
     book:
       standard:              # List of book file paths for variant standard.
         - engines/book1.bin
@@ -127,7 +127,7 @@ challenge:                   # Incoming challenges.
   min_days: 1                # Minimum number of days per move to accept a challenge for a correspondence game.
   variants:                  # Chess variants to accept (https://lichess.org/variant).
     - standard
-#   - fromPosition
+    - fromPosition
 #   - antichess
 #   - atomic
 #   - chess960
@@ -139,7 +139,7 @@ challenge:                   # Incoming challenges.
   time_controls:             # Time controls to accept.
     - bullet
     - blitz
-#   - rapid
+    - rapid
 #   - classical
 #   - correspondence
   modes:                     # Game modes to accept.
@@ -165,7 +165,7 @@ greeting:
 
 matchmaking:
   allow_matchmaking: true    # Set it to 'true' to challenge other bots.
-  challenge_variant: "random" # If set to 'random', the bot will choose one variant from the variants enabled in 'challenge.variants'.
+  challenge_variant: "standard" # If set to 'random', the bot will choose one variant from the variants enabled in 'challenge.variants'.
   challenge_timeout: 30       # Create a challenge after being idle for 'challenge_timeout' minutes. The minimum is 1 minute.
   challenge_initial_time:     # Initial time in seconds of the challenge (to be chosen at random).
     - 60
@@ -179,7 +179,7 @@ matchmaking:
 # opponent_min_rating: 600    # Opponents rating should be above this value (600 is the minimum rating in lichess).
 # opponent_max_rating: 4000   # Opponents rating should be below this value (4000 is the maximum rating in lichess).
   opponent_rating_difference: 100 # The maximum difference in rating between the bot's rating and opponent's rating.
-  opponent_allow_tos_violation: true # Set to 'false' to prevent challenging bots that violated Lichess Terms of Service.
+  opponent_allow_tos_violation: false # Set to 'false' to prevent challenging bots that violated Lichess Terms of Service.
   challenge_mode: "random"    # Set it to the mode in which challenges are sent. Possible options are 'casual', 'rated' and 'random'.
   delay_after_decline: none  # If a bot declines a challenge, delay issuing another challenge to that bot. Possible options are 'none', 'coarse', and 'fine'.
 # block_list:                 # The list of bots that will not be challenged

@@ -1,41 +1,40 @@
 import math
 from urllib.parse import urljoin
 import logging
+import datetime
+from enum import Enum
 from timer import Timer
+from config import Configuration
+from typing import Dict, Any, Tuple, List, DefaultDict
 
 logger = logging.getLogger(__name__)
 
 
 class Challenge:
-    def __init__(self, c_info, user_profile):
+    def __init__(self, c_info: Dict[str, Any], user_profile: Dict[str, Any]) -> None:
         self.id = c_info["id"]
         self.rated = c_info["rated"]
         self.variant = c_info["variant"]["key"]
         self.perf_name = c_info["perf"]["name"]
         self.speed = c_info["speed"]
-        self.increment = c_info.get("timeControl", {}).get("increment")
-        self.base = c_info.get("timeControl", {}).get("limit")
-        self.days = c_info.get("timeControl", {}).get("daysPerTurn")
-        self.challenger = c_info.get("challenger") or {}
-        self.challenger_title = self.challenger.get("title")
-        self.challenger_is_bot = self.challenger_title == "BOT"
-        self.challenger_master_title = self.challenger_title if not self.challenger_is_bot else None
-        self.challenger_name = self.challenger.get("name", "Anonymous")
-        self.challenger_rating_int = self.challenger.get("rating", 0)
-        self.challenger_rating = self.challenger_rating_int or "?"
-        self.from_self = self.challenger_name == user_profile["username"]
+        self.increment: int = c_info.get("timeControl", {}).get("increment")
+        self.base: int = c_info.get("timeControl", {}).get("limit")
+        self.days: int = c_info.get("timeControl", {}).get("daysPerTurn")
+        self.challenger = Player(c_info.get("challenger") or {})
+        self.opponent = Player(c_info.get("destUser") or {})
+        self.from_self = self.challenger.name == user_profile["username"]
 
-    def is_supported_variant(self, challenge_cfg):
+    def is_supported_variant(self, challenge_cfg: Configuration) -> bool:
         return self.variant in challenge_cfg.variants
 
-    def is_supported_time_control(self, challenge_cfg):
+    def is_supported_time_control(self, challenge_cfg: Configuration) -> bool:
         speeds = challenge_cfg.time_controls
-        increment_max = challenge_cfg.max_increment
-        increment_min = challenge_cfg.min_increment
-        base_max = challenge_cfg.max_base
-        base_min = challenge_cfg.min_base
-        days_max = challenge_cfg.max_days
-        days_min = challenge_cfg.min_days
+        increment_max: int = challenge_cfg.max_increment
+        increment_min: int = challenge_cfg.min_increment
+        base_max: int = challenge_cfg.max_base
+        base_min: int = challenge_cfg.min_base
+        days_max: int = challenge_cfg.max_days
+        days_min: int = challenge_cfg.min_days
 
         if self.speed not in speeds:
             return False
@@ -51,134 +50,177 @@ class Challenge:
             # Unlimited game
             return days_max == math.inf
 
-    def is_supported_mode(self, challenge_cfg):
+    def is_supported_mode(self, challenge_cfg: Configuration) -> bool:
         return ("rated" if self.rated else "casual") in challenge_cfg.modes
 
-    def is_supported(self, config, recent_bot_challenges):
+    def is_supported_recent(self, config: Configuration, recent_bot_challenges: DefaultDict[str, List[Timer]]) -> bool:
+        # Filter out old challenges
+        recent_bot_challenges[self.challenger.name] = [timer for timer
+                                                       in recent_bot_challenges[self.challenger.name]
+                                                       if not timer.is_expired()]
+        max_recent_challenges = config.max_recent_bot_challenges
+        return (not self.challenger.is_bot
+                or max_recent_challenges is None
+                or len(recent_bot_challenges[self.challenger.name]) < max_recent_challenges)
+
+    def decline_due_to(self, requirement_met: bool, decline_reason: str) -> str:
+        return "" if requirement_met else decline_reason
+
+    def is_supported(self, config: Configuration,
+                     recent_bot_challenges: DefaultDict[str, List[Timer]]) -> Tuple[bool, str]:
         try:
             if self.from_self:
-                return True, None
+                return True, ""
 
-            if not config.accept_bot and self.challenger_is_bot:
-                return False, "noBot"
+            decline_reason = (self.decline_due_to(config.accept_bot or not self.challenger.is_bot, "noBot")
+                              or self.decline_due_to(not config.only_bot or self.challenger.is_bot, "onlyBot")
+                              or self.decline_due_to(self.is_supported_time_control(config), "timeControl")
+                              or self.decline_due_to(self.is_supported_variant(config), "variant")
+                              or self.decline_due_to(self.is_supported_mode(config), "casual" if self.rated else "rated")
+                              or self.decline_due_to(self.challenger.name not in config.block_list, "generic")
+                              or self.decline_due_to(self.is_supported_recent(config, recent_bot_challenges), "later"))
 
-            if config.only_bot and not self.challenger_is_bot:
-                return False, "onlyBot"
-
-            if not self.is_supported_time_control(config):
-                return False, "timeControl"
-
-            if not self.is_supported_variant(config):
-                return False, "variant"
-
-            if not self.is_supported_mode(config):
-                return False, ("casual" if self.rated else "rated")
-
-            if self.challenger_name in config.block_list:
-                return False, "generic"
-
-            max_recent_challenges = config.max_recent_bot_challenges
-            if self.challenger_is_bot and max_recent_challenges is not None:
-                # Filter out old challenges
-                recent_bot_challenges[self.challenger_name] = [
-                        timer for timer in recent_bot_challenges[self.challenger_name] if not timer.is_expired()]
-                if len(recent_bot_challenges[self.challenger_name]) >= max_recent_challenges:
-                    return False, "later"
-
-            return True, None
+            return not decline_reason, decline_reason
 
         except Exception:
-            logger.exception("Error while checking challenge:")
+            logger.exception(f"Error while checking challenge {self.id}:")
             return False, "generic"
 
-    def score(self):
+    def score(self) -> int:
         rated_bonus = 200 if self.rated else 0
-        titled_bonus = 200 if self.challenger_master_title else 0
-        return self.challenger_rating_int + rated_bonus + titled_bonus
+        challenger_master_title = self.challenger.title if not self.challenger.is_bot else None
+        titled_bonus = 200 if challenger_master_title else 0
+        challenger_rating_int = self.challenger.rating or 0
+        return challenger_rating_int + rated_bonus + titled_bonus
 
-    def mode(self):
+    def mode(self) -> str:
         return "rated" if self.rated else "casual"
 
-    def challenger_full_name(self):
-        return f'{self.challenger_title or ""} {self.challenger_name}'.strip()
+    def __str__(self) -> str:
+        return f"{self.perf_name} {self.mode()} challenge from {self.challenger} ({self.id})"
 
-    def __str__(self):
-        return f"{self.perf_name} {self.mode()} challenge from {self.challenger_full_name()}({self.challenger_rating})"
-
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.__str__()
 
 
+class Termination(str, Enum):
+    MATE = "mate"
+    TIMEOUT = "outoftime"
+    RESIGN = "resign"
+    ABORT = "aborted"
+    DRAW = "draw"
+
+
 class Game:
-    def __init__(self, json, username, base_url, abort_time):
+    def __init__(self, json: Dict[str, Any], username: str, base_url: str, abort_time: int) -> None:
         self.username = username
-        self.id = json.get("id")
+        self.id: str = json["id"]
         self.speed = json.get("speed")
         clock = json.get("clock") or {}
         ten_years_in_ms = 1000 * 3600 * 24 * 365 * 10
         self.clock_initial = clock.get("initial", ten_years_in_ms)
         self.clock_increment = clock.get("increment", 0)
         self.perf_name = (json.get("perf") or {}).get("name", "{perf?}")
-        self.variant_name = json.get("variant")["name"]
-        self.white = Player(json.get("white"))
-        self.black = Player(json.get("black"))
+        self.variant_name = json["variant"]["name"]
+        self.mode = "rated" if json.get("rated") else "casual"
+        self.white = Player(json["white"])
+        self.black = Player(json["black"])
         self.initial_fen = json.get("initialFen")
-        self.state = json.get("state")
+        self.state: Dict[str, Any] = json["state"]
         self.is_white = (self.white.name or "").lower() == username.lower()
         self.my_color = "white" if self.is_white else "black"
         self.opponent_color = "black" if self.is_white else "white"
         self.me = self.white if self.is_white else self.black
         self.opponent = self.black if self.is_white else self.white
         self.base_url = base_url
+        self.game_start = datetime.datetime.fromtimestamp(json["createdAt"]/1000, tz=datetime.timezone.utc)
         self.abort_time = Timer(abort_time)
         self.terminate_time = Timer((self.clock_initial + self.clock_increment) / 1000 + abort_time + 60)
         self.disconnect_time = Timer(0)
 
-    def url(self):
-        return urljoin(self.base_url, f"{self.id}/{self.my_color}")
+    def url(self) -> str:
+        return f"{self.short_url()}/{self.my_color}"
 
-    def is_abortable(self):
-        return len(self.state["moves"]) < 6
+    def short_url(self) -> str:
+        return urljoin(self.base_url, self.id)
 
-    def ping(self, abort_in, terminate_in, disconnect_in):
+    def pgn_event(self) -> str:
+        if self.variant_name in ["Standard", "From Position"]:
+            return f"{self.mode.title()} {self.perf_name.title()} game"
+        else:
+            return f"{self.mode.title()} {self.variant_name} game"
+
+    def time_control(self) -> str:
+        return f"{int(self.clock_initial/1000)}+{int(self.clock_increment/1000)}"
+
+    def is_abortable(self) -> bool:
+        # Moves are separated by spaces. A game is abortable when less
+        # than two moves (one from each player) have been played.
+        return " " not in self.state["moves"]
+
+    def ping(self, abort_in: int, terminate_in: int, disconnect_in: int) -> None:
         if self.is_abortable():
             self.abort_time = Timer(abort_in)
         self.terminate_time = Timer(terminate_in)
         self.disconnect_time = Timer(disconnect_in)
 
-    def should_abort_now(self):
+    def should_abort_now(self) -> bool:
         return self.is_abortable() and self.abort_time.is_expired()
 
-    def should_terminate_now(self):
+    def should_terminate_now(self) -> bool:
         return self.terminate_time.is_expired()
 
-    def should_disconnect_now(self):
+    def should_disconnect_now(self) -> bool:
         return self.disconnect_time.is_expired()
 
-    def my_remaining_seconds(self):
-        return (self.state["wtime"] if self.is_white else self.state["btime"]) / 1000
+    def my_remaining_seconds(self) -> float:
+        wtime: int = self.state["wtime"]
+        btime: int = self.state["btime"]
+        return (wtime if self.is_white else btime) / 1000
 
-    def __str__(self):
-        return f"{self.url()} {self.perf_name} vs {self.opponent.__str__()}"
+    def result(self) -> str:
+        class GameEnding(str, Enum):
+            WHITE_WINS = "1-0"
+            BLACK_WINS = "0-1"
+            DRAW = "1/2-1/2"
+            INCOMPLETE = "*"
 
-    def __repr__(self):
+        winner = self.state.get("winner")
+        termination = self.state.get("status")
+
+        if winner == "white":
+            result = GameEnding.WHITE_WINS
+        elif winner == "black":
+            result = GameEnding.BLACK_WINS
+        elif termination in [Termination.DRAW, Termination.TIMEOUT]:
+            result = GameEnding.DRAW
+        else:
+            result = GameEnding.INCOMPLETE
+
+        return result.value
+
+    def __str__(self) -> str:
+        return f"{self.url()} {self.perf_name} vs {self.opponent} ({self.id})"
+
+    def __repr__(self) -> str:
         return self.__str__()
 
 
 class Player:
-    def __init__(self, json):
-        self.name = json.get("name")
+    def __init__(self, json: Dict[str, Any]) -> None:
+        self.name: str = json.get("name", "")
         self.title = json.get("title")
+        self.is_bot = self.title == "BOT"
         self.rating = json.get("rating")
         self.provisional = json.get("provisional")
         self.aiLevel = json.get("aiLevel")
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.aiLevel:
             return f"AI level {self.aiLevel}"
         else:
             rating = f'{self.rating}{"?" if self.provisional else ""}'
-            return f'{self.title or ""} {self.name}({rating})'.strip()
+            return f'{self.title or ""} {self.name} ({rating})'.strip()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.__str__()
