@@ -288,29 +288,29 @@ class Board {
 
             // Place piece
             if        (fen[0][char] == 'K') {
-                this.board[mail_index] = WHITE | KING
+                this.board[mail_index] = WHITE | KING;
             } else if (fen[0][char] == 'Q') {
-                this.board[mail_index] = WHITE | QUEEN
+                this.board[mail_index] = WHITE | QUEEN;
             } else if (fen[0][char] == 'R') {
-                this.board[mail_index] = WHITE | ROOK
+                this.board[mail_index] = WHITE | ROOK;
             } else if (fen[0][char] == 'B') {
-                this.board[mail_index] = WHITE | BISHOP
+                this.board[mail_index] = WHITE | BISHOP;
             } else if (fen[0][char] == 'N') {
-                this.board[mail_index] = WHITE | KNIGHT
+                this.board[mail_index] = WHITE | KNIGHT;
             } else if (fen[0][char] == 'P') {
-                this.board[mail_index] = WHITE | PAWN
+                this.board[mail_index] = WHITE | PAWN;
             } else if (fen[0][char] == 'k') {
-                this.board[mail_index] = BLACK | KING
+                this.board[mail_index] = BLACK | KING;
             } else if (fen[0][char] == 'q') {
-                this.board[mail_index] = BLACK | QUEEN
+                this.board[mail_index] = BLACK | QUEEN;
             } else if (fen[0][char] == 'r') {
-                this.board[mail_index] = BLACK | ROOK
+                this.board[mail_index] = BLACK | ROOK;
             } else if (fen[0][char] == 'b') {
-                this.board[mail_index] = BLACK | BISHOP
+                this.board[mail_index] = BLACK | BISHOP;
             } else if (fen[0][char] == 'n') {
-                this.board[mail_index] = BLACK | KNIGHT
+                this.board[mail_index] = BLACK | KNIGHT;
             } else if (fen[0][char] == 'p') {
-                this.board[mail_index] = BLACK | PAWN
+                this.board[mail_index] = BLACK | PAWN;
             };
 
             // Increment index if not at end of rank
@@ -416,14 +416,14 @@ class Board {
             // 1 : promotion
             var promotion = (move & 0b0_000_111_0000000_0000000) >> 14;
             if (promotion) {
-                this.board[to_] = piece_color(this.board[from_]) | promotion;
+                this.board[to_] = piece_color(piece) | promotion;
                 this.board[from_] = EMPTY;
                 this.ep.push(-1);
             }
 
             // 2 : double pawn push
             else if (Math.abs(from_ - to_) == 20) {
-                this.board[to_] = this.board[from_];
+                this.board[to_] = piece;
                 this.board[from_] = EMPTY;
                 this.ep.push(((to_ + from_)/2) >> 0); // En-passant square
             }
@@ -434,20 +434,20 @@ class Board {
 
                 if (from_ < to_) { // Black takes White
                     this.board[to_ - 10] = EMPTY;
-                    this.board[to_] = this.board[from_];
+                    this.board[to_] = piece;
                     this.board[from_] = EMPTY;
                 }
 
                 else { // White takes Black
                     this.board[to_ + 10] = EMPTY;
-                    this.board[to_] = this.board[from_];
+                    this.board[to_] = piece;
                     this.board[from_] = EMPTY;
                 };
             }
 
             // 4 : Others pawn moves
             else {
-                this.board[to_] = this.board[from_];
+                this.board[to_] = piece;
                 this.board[from_] = EMPTY;
                 this.ep.push(-1);
             };
@@ -457,7 +457,7 @@ class Board {
         else if (((piece ^ WHITE) == KING) || ((piece ^ BLACK) == KING)) {
 
             this.ep.push(-1);
-            this.board[to_] = this.board[from_];
+            this.board[to_] = piece;
             this.board[from_] = EMPTY;
 
             if (Math.abs(from_ - to_) == 2) { // castle
@@ -486,7 +486,7 @@ class Board {
 
         // Other pieces moves
         else {
-            this.board[to_] = this.board[from_];
+            this.board[to_] = piece;
             this.board[from_] = EMPTY;
             this.ep.push(OFF_BOARD);
         };
@@ -510,7 +510,7 @@ class Board {
             rule_50 = 0
         };
         if (this.turn) {     // change if Black just played, since we have
-            move_count ++   // already updated turn
+            move_count++;   // already updated turn
         }; 
         this.move_count.push([rule_50, move_count]);
     };
@@ -2316,15 +2316,16 @@ function display_eval(evaluation) {
 };
 
 function hashfull() {
+    // Estimates hashfull over 1000 hash entry
     if (showHashFull) {
-        var counter = ttSIZE;
-        for (var i of tt) {
+        var counter = 1000;
+        for (var i = 0; i < 1000; i++) {
             if (i.key == 0 && i.noNull == false && i.depth == 0 && i.value==0 &&
                 i.flag == 0 && i.move == 0) {
                 counter--;
             };
         };
-        return ' hashfull ' + ((1000 * counter / ttSIZE) >> 0).toString();
+        return ' hashfull ' + (counter).toString();
     };
     return '';
 };
