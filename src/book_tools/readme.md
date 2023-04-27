@@ -1,6 +1,6 @@
 # Book Tools
 
-Books format used in Reglisse are not usuals. They are in the same format than TSCP's book by [Tom Kerrigan](http://www.tckerrigan.com). Here is explained how to create your own Reglisse book, base on a Polyglott or a PGN file.
+Books format used in Reglisse are not usuals. They are in the same format than TSCP's book by [Tom Kerrigan](http://www.tckerrigan.com). Here is explained how to create your own Reglisse book, based on a Polyglott or a PGN file.
 
 First, you have to inslatall ```python-chess``` :
 
