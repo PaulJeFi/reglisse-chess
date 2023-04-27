@@ -2382,9 +2382,10 @@ function iterative_deepening(board, depth=5, time=false) {
     var old_evaluation = 0;
     var elapsed = 0;
     var view = board.turn ? 1 : -1;
-    var total_nodes = 0;
     var WDL = '';
     var WDL_v = [0, 0, 0];
+    var old_nodes = 1;
+    var nodes = 0;
 
     if (time) {
         depth = MAX_PLY;
@@ -2401,7 +2402,7 @@ function iterative_deepening(board, depth=5, time=false) {
         elapsed = (new Date().getTime()) - startTime;
 
         if (!searcher.timeout) {
-            total_nodes += searcher.nodes;
+            nodes = searcher.nodes;
             WDL = '';
             if (UCI_ShowWDL) {
                 WDL_v = wdl(evaluation, board.move_stack.length);
@@ -2411,9 +2412,10 @@ function iterative_deepening(board, depth=5, time=false) {
             send_message('info depth ' + searcher.depth.toString() +
             ' seldepth ' + searcher.selfdepth.toString() + ' score '
             + display_eval(evaluation) + WDL +' nodes ' +
-            total_nodes + ' nps ' 
-            + ((total_nodes / (elapsed / 1000)) >> 0).toString() + ' time ' +
-            elapsed.toString() + ' pv ' + searcher.collect_PV() + hashfull());
+            nodes + ' nps ' 
+            + ((nodes / (elapsed / 1000)) >> 0).toString() + ' time ' +
+            elapsed.toString() + ' ebf ' + Math.round(nodes/old_nodes) + ' pv '+ 
+            searcher.collect_PV() + hashfull());
         };
         if (searcher.timeout) {
             const PV = old_searcher.collect_PV(false);
@@ -2428,6 +2430,7 @@ function iterative_deepening(board, depth=5, time=false) {
 
         old_searcher = searcher;
         old_evaluation = evaluation;
+        old_nodes = nodes;
     };
 };
 
