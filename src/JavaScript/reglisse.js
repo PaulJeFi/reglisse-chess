@@ -2365,7 +2365,65 @@ function wdl(v, ply) {
     return [wdl_w, wdl_d, wdl_l];
 };
 
-function iterative_deepening(board, depth=5, time=false) {
+function exponentialRegression(x, y) {
+    let n = x.length;
+    let sx = 0;
+    let sy = 0;
+    let sxx = 0;
+    let sxy = 0;
+    let syy = 0;
+  
+    for (let i = 0; i < n; i++) {
+      sx += x[i];
+      sy += Math.log(y[i]);
+      sxx += x[i] * x[i];
+      sxy += x[i] * Math.log(y[i]);
+      syy += Math.log(y[i]) * Math.log(y[i]);
+    };
+  
+    let delta = n * sxx - sx * sx;
+    let b = (n * sxy - sx * sy) / delta;
+    let a = (sxx * sy - sx * sxy) / delta;
+    // let r2 = Math.pow((n * sxy - sx * sy) / Math.sqrt((n * sxx - sx * sx) *
+    // (n * syy - sy * sy)), 2);
+    // We do not need to compute r2 for a chess engine !
+  
+    return [Math.exp(a), b]; //, r2];
+    // y = a * exp(b * x)
+};
+
+// This is an exponential model of how we can predict the number of nodes in the
+// next iteration knowing the previous ones. It is useful while the engine is
+// playing. It is better to not start a new iteration if we know it will
+// arrested by timeouted, as it can save time for the rest of the game.
+function model_nodes_times(y, speed, time, playing) {
+
+    // x : depth
+    // y : nodes
+    var n = y.length
+
+    if ((n < 5) || !playing) {
+        return false; // assume depth 5 is fast to reach
+    };
+
+    var x = [];
+    for (var i=1; i<=n; i++) {
+        x.push(i);
+    };
+
+    let [a, b] = exponentialRegression(x, y);
+    
+    // Predicts nuber of nodes in the next iteration
+    var next_nodes = a * Math.exp(b * (n+1));
+
+    if (time - next_nodes/speed <= 0) {
+        return true; // we have made the estimation that a new search would take
+                     // too much time
+    };
+    return false;
+};
+
+function iterative_deepening(board, depth=5, time=false, playing=false) {
 
     if (!UCI_AnalyseMode) {
         var moves = board.genLegal();
@@ -2386,6 +2444,7 @@ function iterative_deepening(board, depth=5, time=false) {
     var WDL_v = [0, 0, 0];
     var old_nodes = 1;
     var nodes = 0;
+    var nodes_history = [];
 
     if (time) {
         depth = MAX_PLY;
@@ -2403,6 +2462,7 @@ function iterative_deepening(board, depth=5, time=false) {
 
         if (!searcher.timeout) {
             nodes = searcher.nodes;
+            nodes_history.push(nodes);
             WDL = '';
             if (UCI_ShowWDL) {
                 WDL_v = wdl(evaluation, board.move_stack.length);
@@ -2422,7 +2482,8 @@ function iterative_deepening(board, depth=5, time=false) {
             send_message('bestmove ' + str_move(PV[0]));
             return [PV, view * old_evaluation];
         }
-        if ((elapsed >= time) || (curr_depth >= depth)) {
+        if ((elapsed >= time) || (curr_depth >= depth) || model_nodes_times(
+                         nodes_history, nodes/elapsed, time-elapsed, playing)) {
             const PV = searcher.collect_PV(false);
             send_message('bestmove ' + str_move(PV[0]));
             return [PV, view * evaluation];
@@ -2772,6 +2833,8 @@ function read_command(command) {
         var perft = command.includes('perft');
         var movestogo = 0;
         var let_search = true;
+        var playing = false; // if a playing time is specified, the engine can
+                             // behave differently
 
         if (UseBook && !perft) {
             move = book.move_from_book(board);
@@ -2808,6 +2871,7 @@ function read_command(command) {
                         [command.split(' ').indexOf('winc') + 1]);
                 };
                 time = manage(time, board, inc, movestogo);
+                playing = true;
             };
         } else if (!board.turn) {
             if (command.includes('btime')) {
@@ -2818,6 +2882,7 @@ function read_command(command) {
                         [command.split(' ').indexOf('binc') + 1]);
                 };
                 time = manage(time, board, inc, movestogo);
+                playing = true;
             };
         };
         if (perft) {
@@ -2826,7 +2891,7 @@ function read_command(command) {
         else {
             send_message('info string searching for ' +
                 (time >> 0).toString() + ' ms at depth ' + depth.toString());
-            var move = iterative_deepening(board, depth, time)[0][0];
+            var move = iterative_deepening(board, depth, time, playing)[0][0];
             if (command.split(' ').includes('move')) {
                 board.push(move);
             };
