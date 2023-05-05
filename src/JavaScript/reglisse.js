@@ -581,34 +581,14 @@ class Board {
     push_NONE() {
 
         // Flags update
-
-        // Ep update
-        this.ep.push(-1);
-        
-        // Castling rights update :
-        this.castling_rights.push(
-            this.castling_rights[this.castling_rights.length - 1]
-        );
-
         this.turn = !this.turn;
         this.move_stack.push(NONE);
-
-        // Move count update
-        var rule_50 = this.move_count[this.move_count.length - 1][0] + 1;
-        var move_count = this.move_count[this.move_count.length - 1][1];
-        if (this.turn) {     // change if Black just played, since we have
-            move_count++;  // already updated turn
-        }; 
-        this.move_count.push([rule_50, move_count]);
     };
 
     pop_NONE() {
 
         // Update flags :
         this.turn = !this.turn;
-        this.castling_rights.pop();
-        this.ep.pop();
-        this.move_count.pop();
         this.move_stack.pop();
     };
 
