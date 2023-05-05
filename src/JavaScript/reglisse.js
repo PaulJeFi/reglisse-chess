@@ -318,7 +318,7 @@ class Board {
         };
     };
 
-    get fen() {
+    fen() {
         // Export the fen position of the board
 
         var fen  = '';
@@ -2066,7 +2066,7 @@ class Search {
             this.hash.push(hash_);
             this.board.push_NONE(); // make a null move
             if (this.board.move_stack[this.board.move_stack.length-1] == NONE) {
-                // Allow only signe-null and double-null move, not more
+                // Allow only single-null and double-null move, not more
                 no_null = true;
             };
             val = -this.pvSearch(depth-1-R, -beta, -beta+1, mate, 0,
@@ -2732,7 +2732,7 @@ function read_command(command) {
         send_message('Static eval : ' + evaluate(board).toString() * view +
                     ' cp');
     } else if (command.split(' ')[0] == 'd') {
-        send_message(pretty_fen(board.fen));
+        send_message(pretty_fen(board.fen()));
         send_message('Key : ' + (hash(board)).toString(16).toUpperCase());
     } else if (command.split(' ')[0] == 'move') {
         var move = board.readMove(command.split(' ')[1]);
