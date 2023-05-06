@@ -1001,10 +1001,6 @@ class Board {
 
         var moves = [];
         var color = this.turn ? WHITE : BLACK;
-        var color = BLACK;
-        if (this.turn) {
-            color = WHITE;
-        };
 
         // Let's iterate over each square
         for (var square of mailbox64) {
