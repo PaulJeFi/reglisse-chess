@@ -2256,12 +2256,21 @@ class Search {
         // Return the PV in the str or move format
         var line = '',
             PV   = [],
-            move = 0;
+            move = 0,
+            temp_board = new Board(this.board.fen());
         for (var i=0; i<this.depth; i++) {
             move = this.pv[index_pv(i, this.depth)];
             if (move == 0) {
                 break;
             };
+
+            if (move != temp_board.readMove(str_move(move), true)) {
+                // the move stored is illegal in this position
+                break;
+            };
+            
+            // Else : we have a PV-move !
+            temp_board.push(move);
             line += str_move(move) + ' ';
             PV.push(move);
         };
