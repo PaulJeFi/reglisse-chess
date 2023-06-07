@@ -41,6 +41,8 @@ It currently has the following features :
         - [MVV LVA](https://www.chessprogramming.org/MVV-LVA)
         - [History Heuristic](https://www.chessprogramming.org/History_Heuristic)
         - [Killer Moves Heuristic](https://www.chessprogramming.org/Killer_Heuristic)
+        - [TT score](https://www.chessprogramming.org/Transposition_Table)
+        - Eval score
 - [UCI](./engine-interface.md) interface (not fully supported)
 
 ## Why _Réglisse_ ?

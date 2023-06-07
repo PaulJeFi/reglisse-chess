@@ -1856,12 +1856,21 @@ function score_move(move, board, ply, best_move=0) {
     score +=  history_h[board.turn >> 0][(move & 0b0_1111111_0000000) >> 7]
             [move & 0b0_1111111];
 
-    /*
+
+    // If we have no information about the quality of the move, we can try TT
+    // score or evaluation to have an idea. This is not the best as it implies
+    // to make and unmake the move. ~80 Elo
     if (score == 0) {
         var view = board.turn ? 1 : -1;
-        score = evaluate(board) * view;
+        board.push(move);
+        score += ProbeHash(board, 0, -mateValue, mateValue);
+        // Note : TT probe can return valUNKNOW (1.5) or hash_NO_NULL (2.5), but
+        // as theses moves are unknown or tactical, they could be interesting,
+        // more than a classical drawing score. (At least it's my guess.)
+        score += evaluate(board) * view;
+        board.pop(move);
     };
-    */
+
 
     return score;
 };
