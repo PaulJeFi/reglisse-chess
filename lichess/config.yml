@@ -5,8 +5,9 @@ engine:                      # Engine settings.
   dir: "./engines/"          # Directory containing the engine. This can be an absolute path or one relative to lichess-bot/.
   name: "reglisse.sh"        # Binary name of the engine to use.
   working_dir: ""            # Directory where the chess engine will read and write files. If blank or missing, the current directory is used.
+                             # NOTE: If working_dir is set, the engine will look for files and directories relative to this directory, not where lichess-bot was launched. Absolute paths are unaffected.
   protocol: "uci"            # "uci", "xboard" or "homemade"
-  ponder: false               # Think on opponent's time.
+  ponder: false              # Think on opponent's time.
 
   polyglot:
     enabled: false           # Activate polyglot book.
@@ -50,6 +51,13 @@ engine:                      # Engine settings.
       max_score_difference: 50 # Only for move_quality: "good". The maximum score difference (in cp) between the best move and the other moves.
       min_depth: 20
       min_knodes: 0
+    lichess_opening_explorer:
+      enabled: true
+      min_time: 20
+      source: "masters"      # One of "lichess", "masters", "player"
+      player_name: ""        # The lichess username. Leave empty for the bot's username to be used. Used only when source is "player".
+      sort: "winrate"        # One of "winrate", "games_played"
+      min_games: 10          # Minimum number of times a move must have been played to be chosen.
     online_egtb:
       enabled: true
       min_time: 20
@@ -181,7 +189,7 @@ matchmaking:
   opponent_rating_difference: 100 # The maximum difference in rating between the bot's rating and opponent's rating.
   opponent_allow_tos_violation: false # Set to 'false' to prevent challenging bots that violated Lichess Terms of Service.
   challenge_mode: "random"    # Set it to the mode in which challenges are sent. Possible options are 'casual', 'rated' and 'random'.
-  delay_after_decline: none  # If a bot declines a challenge, delay issuing another challenge to that bot. Possible options are 'none', 'coarse', and 'fine'.
+  delay_after_decline: none   # If a bot declines a challenge, do not issue a similar challenge to that bot. Possible options are 'none', 'coarse', and 'fine'.
 # block_list:                 # The list of bots that will not be challenged
 #   - user1
 #   - user2
