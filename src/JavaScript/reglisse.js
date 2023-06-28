@@ -1315,7 +1315,7 @@ class Board {
     genLegal() {
         var moves = [];
         for (var move of this.genPseudoLegalMoves()) {
-            var turn = board.turn ? WHITE : BLACK;
+            var turn = this.turn ? WHITE : BLACK;
             this.push(move);
             if (!this.isCheck(turn)) {
                 moves.push(move);
@@ -2507,12 +2507,27 @@ class Book {
     };
 
     load(book_file) {
-        this.book = []; // the book list, containing UCI lines
+        var lines = []; // the book list, containing UCI lines
+        this.book  = {}; // the book, used by hash -> moves
+        var board = new Board();
+        var hash_ = 0;
         try {
-            this.book = fs.readFileSync(book_file).toString()
-                        .split('\n');
+            lines = fs.readFileSync(book_file).toString().split('\n');
+            for (var line of lines) {
+                board = new Board();
+                for (var move of line.split(' ')) {
+                    hash_ = hash(board)
+                    if (this.book.hasOwnProperty(hash_)) {
+                        this.book[hash_] = [move.replace(/(\r\n|\n|\r)/gm, "")].concat(this.book[hash_]);
+                    } else {
+                        this.book[hash_] = move.replace(/(\r\n|\n|\r)/gm, "");
+                    };
+                    board.push(board.readMove(move.replace(/(\r\n|\n|\r)/gm, ""), true));
+                };
+            };
+            
         } catch (error) {
-            send_message('info string opening book ' + book_file +' not found');
+           send_message('info string opening book ' + book_file +' not found');
         }; 
     };
 
@@ -2521,24 +2536,11 @@ class Book {
         if (board.startpos != STARTING_FEN) {
             return '0000';
         };
-        var line = ''; // the move line of the current board
-        for (var move of board.move_stack) {
-            line += str_move(move) + ' ';
-        };
-        line.slice(0, -1);
+        var hash_ = hash(board);
         var options = [];
         
-        for (var book_line of this.book) {
-            if (!book_line.includes(line)) {
-                continue;
-            };
-
-            if (book_line.indexOf(line) == 0) {
-                if (book_line.split(' ').length > line.split(' ').length) {
-                    options.push(
-                        book_line.split(' ')[line.split(' ').length + 1]);
-                };
-            };
+        if (this.book.hasOwnProperty(hash_)) {
+            options = this.book[hash_];
         };
         
         if (options.length) {
