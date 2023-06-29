@@ -2518,11 +2518,13 @@ class Book {
                 for (var move of line.split(' ')) {
                     hash_ = hash(board)
                     if (this.book.hasOwnProperty(hash_)) {
-                        this.book[hash_] = [move.replace(/(\r\n|\n|\r)/gm, "")].concat(this.book[hash_]);
+                        this.book[hash_] = [move.replace(/(\r\n|\n|\r)/gm, "")]
+                        .concat(this.book[hash_]);
                     } else {
                         this.book[hash_] = move.replace(/(\r\n|\n|\r)/gm, "");
                     };
-                    board.push(board.readMove(move.replace(/(\r\n|\n|\r)/gm, ""), true));
+                    board.push(board.readMove(
+                        move.replace(/(\r\n|\n|\r)/gm, ""), true));
                 };
             };
             
@@ -2569,7 +2571,8 @@ const benchlist = [
     '8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 11',
     '4rrk1/pp1n3p/3q2pQ/2p1pb2/2PP4/2P3N1/P2B2PP/4RRK1 b - - 7 19',
     'rq3rk1/ppp2ppp/1bnpb3/3N2B1/3NP3/7P/PPPQ1PP1/2KR3R w - - 7 14 moves d4e6',
-    'r1bq1r1k/1pp1n1pp/1p1p4/4p2Q/4Pp2/1BNP4/PPP2PPP/3R1RK1 w - - 2 14 moves g2g4',
+    'r1bq1r1k/1pp1n1pp/1p1p4/4p2Q/4Pp2/1BNP4/PPP2PPP/3R1RK1 w - - 2 14 moves' +
+    ' g2g4',
     'r3r1k1/2p2ppp/p1p1bn2/8/1q2P3/2NPQN2/PPP3PP/R4RK1 b - - 2 15',
     'r1bbk1nr/pp3p1p/2n5/1N4p1/2Np1B2/8/PPP2PPP/2KR1B1R w kq - 0 13',
     'r1bq1rk1/ppp1nppp/4n3/3p3Q/3P4/1BP1B3/PP1N2PP/R4RK1 w - - 1 16',
