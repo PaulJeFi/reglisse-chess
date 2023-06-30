@@ -1875,14 +1875,16 @@ function score_move(move, board, ply, best_move=0) {
     return score;
 };
 
-function ordering(board, ply, moves, hash_=false) {
+function ordering(board, ply, moves, hash_=false, tt_move=NONE) {
     // A move ordering method. See score_move()
     var best_move = 0;
-    if (hash_) {
+    if (hash_ && (tt_move == NONE)) {
         var entry = tt[hash_ % ttSIZE];
         if (entry.key == hash_) {
             best_move = entry.move;
         };
+    } else if (tt_move != NONE) {
+        best_move = tt_move;
     };
     var Moves = [];
     for (var move of moves) {
@@ -1954,13 +1956,19 @@ class Search {
         var fFoundPv = false,
             hashf    = hashALPHA,
             turn     = this.board.turn ? WHITE : BLACK,
-            hash_    = hash(this.board);
+            hash_    = hash(this.board),
+            tt_move = NONE;
         
         var val = 0;
 
-        if (!(Math.abs(beta - alpha) > 1) || (checkFlag == -1)) { // Probe TT if
-                                                        // node is not a PV node
-            // If checkFlag = -1 we know this is a QS-node
+        // TT probe. If UCI_AnalyseMode, we should not return the TT score in PV
+        // move to not make the PV shorter. Also, do not return the PV score at
+        // the root (we absolutely need to find a move).
+        if (checkFlag == -1 && !(UCI_AnalyseMode &&
+            (Math.abs(beta - alpha) > 1)) && (this.depth != realdepth)) {
+            // If checkFlag = -1 we know this is a QS-node, so it is unecessary
+            // to probe since we never store in the TT during QS.
+
             val = ProbeHash(this.board, realdepth, alpha, beta, hash_);
             if (val == hash_NO_NULL) {
                 no_null = true;
@@ -2077,10 +2085,23 @@ class Search {
         };
         var pvNextIndex = pvIndex + realdepth;
 
+        // extract TT move
+        var entry = tt[hash_ % ttSIZE];
+        if ((entry.key == hash_) && (entry.depth >= realdepth)) {
+            tt_move = entry.move;
+        };
+
         this.ply++;
         this.hash.push(hash_);
         for (var move of ordering(this.board, this.ply,
-            this.board.genPseudoLegalMoves())) {
+            this.board.genPseudoLegalMoves(), hash_, tt_move)) {
+
+            // If we have a TT move, it means it is the best, so we do not need
+            // to search all other moves, we simply have to search deeper on
+            // this move.
+            if ((tt_move != NONE) && (move != tt_move)) {
+                continue;
+            };
 
             this.board.push(move);
 
