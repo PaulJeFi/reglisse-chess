@@ -2087,7 +2087,7 @@ class Search {
 
         // extract TT move
         var entry = tt[hash_ % ttSIZE];
-        if ((entry.key == hash_) && (entry.depth >= realdepth)) {
+        if (entry.key == hash_) {
             tt_move = entry.move;
         };
 
@@ -2099,7 +2099,7 @@ class Search {
             // If we have a TT move, it means it is the best, so we do not need
             // to search all other moves, we simply have to search deeper on
             // this move.
-            if ((tt_move != NONE) && (move != tt_move)) {
+            if ((tt_move != NONE) && (move != tt_move) && (entry.depth >= realdepth)) {
                 continue;
             };
 
