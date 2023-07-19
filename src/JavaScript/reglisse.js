@@ -6,6 +6,9 @@ const ABOUT  = NAME + ' by ' + AUTHOR + ', see ' +
                'https://github.com/PaulJeFi/reglisse-chess';
 
 const fs = require('fs');
+
+
+
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
 //                               CONSTANTS                                    //
@@ -218,6 +221,7 @@ const countOccurrences = (arr, val)=>arr.reduce((a, v)=>(v===val ? a + 1: a),0);
 //                  make/unmake moves, and moves generation.                  //
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
+
 
 class Board {
 
@@ -1345,6 +1349,7 @@ class Board {
 };
 
 
+
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
 //                                 PERFT                                      //
@@ -1353,6 +1358,7 @@ class Board {
 //                 generation and to test their performances.                 //
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
+
 
 function perft(board, depth) {
     // Simple perft function
@@ -1394,6 +1400,8 @@ function PERFT(board, depth, indent='') {
     return nodes;
 };
 
+
+
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
 //                                EVALUATION                                  //
@@ -1402,6 +1410,8 @@ function PERFT(board, depth, indent='') {
 //                      Here, peSTO evaluation is used.                       //
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
+
+
 var SKILL = 20;
 var contempt = 0;
 
@@ -1634,6 +1644,8 @@ function value_draw(depth, nodes) {
     return depth < 4 ? 0 : (2 * nodes % 2) - 1 - contempt;
 };
 
+
+
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
 //                             ZOBRIST HASHING                                //
@@ -1685,25 +1697,39 @@ function hash(board) {
 
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
-//                                 SEARCH                                     //
+//                           TRANSPOSITION TABLE                              //
 //                                                                            //
-//         Search is the algorithm that try to find the best moves.           //
+//            The transposition table (TT) is usefull when reaching           //
+//                       already visited positions.                           //
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-init_zobrist();
+/*
+    The idea with TT is that information is faster to store than to compute.
+    The TT is a list with fixed lenght (ttSIZE).
+    Each element is en Entry, containing differents informations, like :
+        - a zobrist key to identify a position
+        - a null flag, to disallow or not null-move pruning
+        - a depth, to decide if it is judicious to use the information stored
+        - a value, corresponding to the evaluation of the position
+        - a flag, giving information about the accuracy of the value
+        - a move, storing the best move possible in this position
 
+    Given a zobrist key, the Entry index in the TT is calculated by :
+        index = key % ttSIZE
+*/
+
+init_zobrist();
 var ttSIZE = 838860;  // The size of the transposition table (TT).
-const R = 2,          // R is the depth reduction when we do a null-move search.
-                      // See later.
+
 // Some hash flag used in TT :
-hashEXACT    = 0,
+const hashEXACT    = 0,
 hashALPHA    = 1,
 hashBETA     = 2,
 valUNKNOW    = 1.5,   // impossible to have eval = 1.5 in practise
-hash_NO_NULL = 2.5,   // impossible to have eval = 2.5 in practise
+hash_NO_NULL = 2.5;   // impossible to have eval = 2.5 in practise
 
-MAX_PLY      = 1024;  // ply are used in Killer Moves. See later.
+var tt    = []; // TT
 
 class Entry {
     // A class that represents a TT entry.
@@ -1717,49 +1743,6 @@ class Entry {
     };
 };
 
-var tt    = [], // TT
-history_h = [], // History heuristic store
-killers   = []; // Killer move store
-
-function reset_tables() {
-    tt        = []; // TT
-    history_h = [], // History heuristic store
-    killers   = []; // Killer move store
-
-    for (var i=0; i<ttSIZE; i++) {
-        tt.push(new Entry());
-    };
-
-    for (var i=0; i<2; i++) {
-        history_h.push([]);
-        for (var j=0; j<98+1; j++) {
-            history_h[i].push([]);
-            for (var k=0; k<98+1; k++) {
-                history_h[i][j].push(NONE);
-            };
-        };
-    };
-
-    for (var i=0; i<MAX_PLY; i++) {
-        killers.push([NONE, NONE]);
-    };
-};
-
-reset_tables();
-
-function history_new_iteration() {
-    // Divide by 8 hystory heuristic, to not have a too big behaviour of history
-    // on new search depth
-    for (var i=0; i<2; i++) {
-        history_h.push([]);
-        for (var j=0; j<98+1; j++) {
-            for (var k=0; k<98+1; k++) {
-                history_h[i][j][k] = history_h[i][j][k] / 8;
-            };
-        };
-    };
-};
-
 function setHashSize(Mb) {
     // Set the hash size (thanks to WukongJS)
 
@@ -1769,17 +1752,6 @@ function setHashSize(Mb) {
     ttSIZE = (Mb * 0x100000 / 20)>>0;
     reset_tables();
 };
-
-// MVV_LVA[attacker][victim]
-const MVV_LVA = [
-    // Victim     K    Q    R    B    N    P    / Attacker
-                [600, 500, 400, 300, 200, 100], //   K
-                [601, 501, 401, 301, 201, 101], //   Q
-                [602, 502, 402, 302, 202, 102], //   R
-                [603, 503, 403, 303, 203, 103], //   B
-                [604, 504, 404, 304, 204, 104], //   N
-                [605, 505, 405, 305, 205, 105], //   P
-];
 
 function ProbeHash(board, depth, alpha, beta, hash_=false) {
     // Probe the TT to extract information if it exists about a given position.
@@ -1823,6 +1795,72 @@ function RecordHash(board, depth, val, flag, hash_=false, best_move=0) {
     entry.move  = best_move;
     tt[hash_ % ttSIZE] = entry;
 };
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+//                                                                            //
+//                             MOVE ORDERING                                  //
+//                                                                            //
+//                Searching best moves first is faster than                   //
+//                      searching them in random order.                       //
+//                                                                            //
+////////////////////////////////////////////////////////////////////////////////
+
+
+var history_h = [], // History heuristic store
+killers   = []; // Killer move store
+const MAX_PLY      = 1024;  // ply are used in Killer Moves. See later.
+
+function reset_tables() {
+    tt        = []; // TT
+    history_h = [], // History heuristic store
+    killers   = []; // Killer move store
+
+    for (var i=0; i<ttSIZE; i++) {
+        tt.push(new Entry());
+    };
+
+    for (var i=0; i<2; i++) {
+        history_h.push([]);
+        for (var j=0; j<98+1; j++) {
+            history_h[i].push([]);
+            for (var k=0; k<98+1; k++) {
+                history_h[i][j].push(NONE);
+            };
+        };
+    };
+
+    for (var i=0; i<MAX_PLY; i++) {
+        killers.push([NONE, NONE]);
+    };
+};
+
+reset_tables();
+
+function history_new_iteration() {
+    // Divide by 8 hystory heuristic, to not have a too big behaviour of history
+    // on new search depth
+    for (var i=0; i<2; i++) {
+        history_h.push([]);
+        for (var j=0; j<98+1; j++) {
+            for (var k=0; k<98+1; k++) {
+                history_h[i][j][k] = history_h[i][j][k] / 8;
+            };
+        };
+    };
+};
+
+// MVV_LVA[attacker][victim]
+const MVV_LVA = [
+    // Victim     K    Q    R    B    N    P    / Attacker
+                [600, 500, 400, 300, 200, 100], //   K
+                [601, 501, 401, 301, 201, 101], //   Q
+                [602, 502, 402, 302, 202, 102], //   R
+                [603, 503, 403, 303, 203, 103], //   B
+                [604, 504, 404, 304, 204, 104], //   N
+                [605, 505, 405, 305, 205, 105], //   P
+];
 
 function score_move(move, board, ply, best_move=0) {
     // A method for move ordering. An heuristic to assign score to moves to
@@ -1897,6 +1935,20 @@ function ordering(board, ply, moves, hash_=false, tt_move=NONE) {
 
     return Moves;
 };
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+//                                                                            //
+//                                 SEARCH                                     //
+//                                                                            //
+//         Search is the algorithm that try to find the best moves.           //
+//                                                                            //
+////////////////////////////////////////////////////////////////////////////////
+
+
+const R = 2; // R is the depth reduction when we do a null-move search.
+             // See later.
 
 // PV store comes from
 // https://www.chessprogramming.org/Triangular_PV-Table
@@ -2099,7 +2151,8 @@ class Search {
             // If we have a TT move, it means it is the best, so we do not need
             // to search all other moves, we simply have to search deeper on
             // this move.
-            if ((tt_move != NONE) && (move != tt_move) && (entry.depth >= realdepth)) {
+            if ((tt_move != NONE) && (move != tt_move) &&
+                (entry.depth >= realdepth)) {
                 continue;
             };
 
@@ -2518,6 +2571,8 @@ function iterative_deepening(board, depth=5, time=false, playing=false) {
 //                         The book reader interface                          //
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
+
+
 const DEFAULT_BOOK = 'TSCP_book.txt';
 var bookFile = DEFAULT_BOOK;
 
@@ -2575,6 +2630,8 @@ class Book {
 };
 
 var book = new Book(bookFile);
+
+
 
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
@@ -2634,6 +2691,8 @@ function bench() {
         read_command('ucinewgame');
     };
 };
+
+
   
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
@@ -2642,6 +2701,8 @@ function bench() {
 //                       The Universal Chess Interface                        //
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
+
+
 var MoveOverhead    = 10;
 var UCI_AnalyseMode = false;
 var UseBook         = true;
