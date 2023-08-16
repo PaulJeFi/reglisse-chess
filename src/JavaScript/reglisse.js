@@ -211,6 +211,9 @@ function isNumeric(num){
 
 const countOccurrences = (arr, val)=>arr.reduce((a, v)=>(v===val ? a + 1: a),0);
 
+// Sum of elements in array
+const sum = (arr)=>arr.reduce((a, b) => a + b, 0);
+
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -233,7 +236,7 @@ class Board {
         this.castling_rights = [0b1111];   // 0b1111 (15)
         this.ep = [];                     // -1 for no ep, else square index
         this.move_count = [[0, 0]];      // eg. [0, 0] in the starting position
-        this.move_stack = [];           // list of moves made
+        this.move_stack = [];           // list of moves made    
         this.load_fen(fen);
     };
 
@@ -379,19 +382,21 @@ class Board {
 
         // Step 2.2 : castling rights
         if (this.castling_rights[this.castling_rights.length -1] & 0b0001) {
-            fen += 'K'
+            fen += 'K';
         };
         if (this.castling_rights[this.castling_rights.length -1] & 0b0010) {
-            fen += 'Q'
+            fen += 'Q';
         
         };
         if (this.castling_rights[this.castling_rights.length -1] & 0b0100) {
-            fen += 'k'
+            fen += 'k';
         };
         if (this.castling_rights[this.castling_rights.length -1] & 0b1000) {
-            fen += 'q'
+            fen += 'q';
         };
-        if (!this.castling_rights[this.castling_rights.length -1]) {fen += '-'};
+        if (!this.castling_rights[this.castling_rights.length -1]) {
+            fen += '-';
+        };
 
         // Step 2.3 : en-passant square
         if (SQUARE_NAMES[Math.abs(this.ep[this.ep.length -1])] == '') {
@@ -1727,7 +1732,7 @@ const hashEXACT    = 0,
 hashALPHA    = 1,
 hashBETA     = 2,
 valUNKNOW    = 1.5,   // impossible to have eval = 1.5 in practise
-hash_NO_NULL = 2.5;   // impossible to have eval = 2.5 in practise
+valInTT      = 2.5;   // impossible to have eval = 2.5 in practise
 
 var tt    = []; // TT
 
@@ -1735,7 +1740,6 @@ class Entry {
     // A class that represents a TT entry.
     constructor() {
         this.key    = 0;
-        this.noNull = false;
         this.depth  = 0;
         this.value  = 0;
         this.flag   = 0;
@@ -1753,43 +1757,73 @@ function setHashSize(Mb) {
     reset_tables();
 };
 
-function ProbeHash(board, depth, alpha, beta, hash_=false) {
+function score_to_tt(score, ply) {
+    return  score >=   mateValue - 2 * MAX_PLY  ? score + ply
+          : score <= -(mateValue - 2 * MAX_PLY) ? score - ply : score;
+};
+
+function score_from_tt(score, ply, rule50) {
+
+    if (score >= mateValue - 2 * MAX_PLY) { // win
+        if (score >= mateValue - MAX_PLY && mateValue - score > 99 - rule50)
+            return mateValue - MAX_PLY - 1; // return only true mate score
+
+        return score - ply;
+    };
+
+    if (score <= -(mateValue - 2 * MAX_PLY)) { // loss
+        if (score <= -(mateValue - MAX_PLY) && mateValue + score > 99 - rule50)
+            return -(mateValue - MAX_PLY) + 1; // return only true mate score
+
+        return score + ply;
+    };
+
+    return score;
+};
+
+function ProbeHash(is_pv, depth, alpha, beta, hash_, ply, rule50) {
     // Probe the TT to extract information if it exists about a given position.
 
-    if (!hash_) {
-        hash_ = hash(board);
-    };
     var entry = tt[hash_ % ttSIZE];
-    if ((entry.key == hash_) && (entry.depth >= depth)) {
-        //if (entry.flag == hash_NO_NULL) {
-        //    return hash_NO_NULL;
-        //};
-        if (entry.flag == hashEXACT) {
-            return entry.value;
+    if (entry.key == hash_) {
+
+        var value = score_from_tt(entry.value, ply, rule50);
+
+        if (entry.depth >= depth && (depth <= 0 || !is_pv || !UCI_AnalyseMode)){
+
+            // Table is exact or produces a cutoff
+            if ( entry.flag == hashEXACT ||
+                (entry.flag == hashALPHA) && (value <= alpha) ||
+                (entry.flag == hashBETA)  && (value >= beta)) {
+                return value;
+            };
+
+            // An entry with one depth lower can be accepted in some conditions.
+            if (!is_pv && entry.depth >= depth - 1 && entry.flag == hashALPHA &&
+                value + 128 <= alpha) {
+                return alpha;
+            };
         };
-        if ((entry.flag == hashALPHA) && (entry.value <= alpha)) {
-            return alpha;
-        };
-        if ((entry.flag == hashBETA) && (entry.value >= beta)) {
-            return beta;
-        };
+
+        return valInTT;
     };
-    entry = tt[(hash_ ^ 12345) % ttSIZE];
-    if (entry.flag == hash_NO_NULL) {
-        return hash_NO_NULL;
-    };
+    
     return valUNKNOW;
 };
 
-function RecordHash(board, depth, val, flag, hash_=false, best_move=0) {
+function RecordHash(depth, ply, val, flag, hash_, best_move=0) {
     // Store information about the position in the TT.
 
-    if (!hash_) {
-        hash_ = hash(board);
+    // Replacement scheme
+    var tt_entry = tt[hash_ % ttSIZE];
+    if (flag != hashEXACT && hash_ == tt_entry.key
+        && depth < tt_entry.depth - 2) {
+        return;
     };
+        
     var entry = new Entry();
     entry.key   = hash_;
-    entry.value = val;
+    entry.value = score_to_tt(val, ply);
     entry.flag  = flag;
     entry.depth = depth;
     entry.move  = best_move;
@@ -1839,7 +1873,7 @@ function reset_tables() {
 reset_tables();
 
 function history_new_iteration() {
-    // Divide by 8 hystory heuristic, to not have a too big behaviour of history
+    // Divide by 8 history heuristic, to not have a too big behaviour of history
     // on new search depth
     for (var i=0; i<2; i++) {
         history_h.push([]);
@@ -1894,20 +1928,22 @@ function score_move(move, board, ply, best_move=0) {
     score +=  history_h[board.turn >> 0][(move & 0b0_1111111_0000000) >> 7]
             [move & 0b0_1111111];
 
-
+    
     // If we have no information about the quality of the move, we can try TT
     // score or evaluation to have an idea. This is not the best as it implies
     // to make and unmake the move. ~80 Elo
+    /*
     if (score == 0) {
         var view = board.turn ? 1 : -1;
         board.push(move);
-        score += ProbeHash(board, 0, -mateValue, mateValue);
+        score += ProbeHash(false, 0, -mateValue, mateValue, hash(board), 0, 0);
         // Note : TT probe can return valUNKNOW (1.5) or hash_NO_NULL (2.5), but
         // as theses moves are unknown or tactical, they could be interesting,
         // more than a classical drawing score. (At least it's my guess.)
         score += evaluate(board) * view;
         board.pop(move);
     };
+    //*/
 
 
     return score;
@@ -1946,18 +1982,15 @@ function ordering(board, ply, moves, hash_=false, tt_move=NONE) {
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
+// Some node information
+const DO_NULL = 1,
+NO_NULL = 0,
+IS_PV   = 1,
+NO_PV   = 0,
 
-const R = 2; // R is the depth reduction when we do a null-move search.
-             // See later.
-
-// PV store comes from
-// https://www.chessprogramming.org/Triangular_PV-Table
-function index_pv(ply, depth) {
-    if (ply == 0) {  
-        return 0
-    };
-    return index_pv(ply-1, depth) + depth - (ply-1);
-};
+SORT_KILL = 80000000,
+Q_PIECE_VALUE =  [EMPTY, 0, 980.5, 494.5, 331, 309, 88],
+FUTILITY_MARGIN = [0, 200, 300, 500]; // for futility pruning
 
 class Search {
     // The search class
@@ -1966,12 +1999,6 @@ class Search {
         this.board = board;
         this.depth = depth;
         this.nodes = 0;
-        // PV store uses a triangular PV table
-        this.pv = [];
-        for (var i=0; i<((((this.depth*this.depth + this.depth)/2)+1) >> 0); 
-            i++) {
-            this.pv.push(0);
-        };
         this.ply = board.move_stack.length;
         this.selfdepth = 0;
 
@@ -1988,154 +2015,142 @@ class Search {
         this.time_to_search = time;
     };
 
-    pvSearch(depth, alpha=-mateValue, beta=mateValue, mate=mateValue, pvIndex=0,
-             storePV=true, checkFlag=0, realdepth=0, no_null=true,
-             PV_right=false) {
+    pvSearch(depth, ply, alpha, beta, can_null, is_pv) {
         // Principal Variation Search
         
-        // checkFlag : some infomration about check
-        //    . 1 -> no check
-        //    . 0 -> unknow
-        //    .-1 -> is check
-        if (depth == this.depth) {
-            realdepth = this.depth;
-            no_null = true;
-        };
+        this.selfdepth = Math.max(this.selfdepth, ply+1);
+        var val = alpha-1;
+        var bestmove;
+        var tt_move = NONE;
+        var tt_flag = hashALPHA;
+        var flagInCheck;
+        var legal_move = 0;      // number of legal moves in the position
+        var raised_alpha = 0;
+        var f_prune = 0;         // no futility pruning by default
+        var reduction_depth = 0;
+        var moves_tried = 0;     // number of moves tried
+        var new_depth;
 
-        this.selfdepth = Math.max(this.selfdepth, this.ply);
-
-        this.nodes++;
-        var fFoundPv = false,
-            hashf    = hashALPHA,
-            turn     = this.board.turn ? WHITE : BLACK,
-            hash_    = hash(this.board),
-            tt_move = NONE;
-        
-        var val = 0;
-
-        // TT probe. If UCI_AnalyseMode, we should not return the TT score in PV
-        // move to not make the PV shorter. Also, do not return the PV score at
-        // the root (we absolutely need to find a move).
-        if (checkFlag == -1 && !(UCI_AnalyseMode &&
-            (Math.abs(beta - alpha) > 1)) && (this.depth != realdepth)) {
-            // If checkFlag = -1 we know this is a QS-node, so it is unecessary
-            // to probe since we never store in the TT during QS.
-
-            val = ProbeHash(this.board, realdepth, alpha, beta, hash_);
-            if (val == hash_NO_NULL) {
-                no_null = true;
-            } else if (val != valUNKNOW) {
-                return val;
-            };
+        // Search explosition check.
+        if (ply >= MAX_PLY+1) {
+            return evaluate(board);
         };
 
         // Time out checkup
         if ((this.nodes % 1024 == 0) || this.timeout) { // check timeout
-                                                             // every 1024 nodes
+                                                        // every 1024 nodes
             if ((new Date().getTime()) - this.startTime >= this.time_to_search){
                 this.timeout = true;
                 return 0;
             };
         };
 
-        if (this.is_draw()) {
-            return value_draw(depth, this.nodes);
-        };
-
-        if (depth <= 0) {
-            // if depth is lower than 0, just do a quiescence search
-            this.hash.push(hash_);
-            val = this.Quiescent(alpha, beta, mate-1);
-            RecordHash(this.board, realdepth, val, hashEXACT, hash_);
-            this.hash.pop();
-            return val;
-        };
-
-        var isCheck = 0;
-        if (checkFlag == -1) { // QuiescentSearch calls PVSearch only if board
-                               // is in check
-            isCheck = true;
-        } else if (checkFlag) {
-            isCheck = false;
-        } else {
-            isCheck = this.board.isCheck(turn);
-        };
-
-        var static_eval = evaluate(this.board); // static eval of the board
-
-        // Razoring (old pruning method, today quite unused because risky ...)  
-        var value = static_eval + 125;
-        if ((value < beta) && !(isCheck || storePV)) {
-            if (depth == 1) {
-                this.hash.push(hash_);
-                var new_value = this.Quiescent(alpha, beta, mate-1);
-                this.hash.pop();
-                value = Math.max(new_value, value);
-                RecordHash(this.board, realdepth, value, hashf, hash_);
-                return value;
+        // Mate distance pruning
+        // upper bound
+        var mating_value = mateValue - ply;
+        if (mating_value <= beta) {
+            beta = mating_value;
+            if (alpha >= mating_value) {
+                return mating_value;
             };
-            value += 175;
-            if ((value < beta) && (depth <= 3)) {
-                this.hash.push(hash_);
-                var new_value = this.Quiescent(alpha, beta, mate-1);
-                this.hash.pop();
-                if (new_value < beta) {
-                    value = Math.max(new_value, value);
-                    RecordHash(this.board, realdepth, value, hashf, hash_);
-                    return value;
-                };
+        };
+        // lower bound
+        mating_value = mating_value = -mateValue + ply;
+        if (mating_value >= alpha) {
+            alpha = mating_value;
+            if (beta <= mating_value) {
+                return mating_value;
             };
         };
 
-        // Futility pruning : at pre fontier nodes (depth = 1), if the score
-        // plus a bishop value is not better than alpha, simply return alpha.
-        if ((depth <= 1) && (!(isCheck  || storePV)) &&
-            (!(this.board.move_stack[this.board.move_stack.length - 1] &
-                0b0_1_111_111_0000000_0000000)) &&
-                (this.board.genLegal().length) && (val < alpha - 320)) {
-            RecordHash(this.board, realdepth, alpha, hashf, hash_);
+        if (alpha >= beta) {
             return alpha;
         };
 
-        // Null move pruning (double null move pruning)
-        // The idea is that if we don't play and our position is still good for
-        // us if our opponent plays, there is no needing to see what's happends
-        // if we play since it will probably be good for us. This is a bad idea
-        // in zugzwang.
-        if (!isCheck && !no_null && // !storePV &&
-            //(this.board.move_stack.length >= 1) &&
-            (this.board.move_stack[this.board.move_stack.length - 2] != NONE) &&
-            (static_eval > beta)) {
-
-            this.ply++;
-            this.hash.push(hash_);
-            this.board.push_NONE(); // make a null move
-            if (this.board.move_stack[this.board.move_stack.length-1] == NONE) {
-                // Allow only single-null and double-null move, not more
-                no_null = true;
+        // Are we in ckeck ? If so, make a check-extension.
+        var turn = this.board.turn ? WHITE : BLACK,
+        flagInCheck = this.board.isCheck(turn);
+        if (flagInCheck) {
+            depth++;
+        };
+        
+        this.nodes++;
+        
+        // Draw detection
+        if (this.is_draw(NONE, ply)) {
+            return value_draw(depth, this.nodes) + ply;
+        };
+        
+        // TT probe
+        var hash_ = hash(this.board)
+        val = ProbeHash(is_pv, depth, alpha, beta, hash_, ply,
+                        this.board.rule_50);
+        var inTT = false;
+        if (val != valUNKNOW) {
+            if (val != valInTT) {
+                return val;
             };
-            val = -this.pvSearch(depth-1-R, -beta, -beta+1, mate, 0,
-                false, 1, realdepth-1, no_null, true);
-            this.board.pop_NONE();
-            this.ply--;
-            this.hash.pop();
+            inTT = true;
+        } else {
+            val = alpha-1;
+        };
+        
+        if (depth <= 0) {
+            // if depth is lower than 0, just do a quiescence search
+            return this.Quiescent(alpha, beta, ply);
+        };
+
+        // Eval pruning / Static null move pruning / Beta pruning /
+        // Reverse futility pruning
+        var static_eval = evaluate(this.board); // static eval of the board
+        if (depth < 3 && (!is_pv) && (!flagInCheck) 
+            && (Math.abs(beta - 1) > -mateValue + 100)) {
+            var eval_margin = 120 * depth;
+            if (static_eval - eval_margin >= beta) {
+                return static_eval - eval_margin;
+            };
+        };
+
+        // Alpha pruning
+        if (!is_pv && !flagInCheck && depth <= 5 &&
+            static_eval + 3000 <= alpha) {
+                return static_eval;
+        };
+
+        // Razoring
+        var value = beta;
+        if (static_eval < alpha - 369 - 254 * depth * depth) {
+            value = this.Quiescent(alpha-1, alpha, ply);
+            if (value < alpha && !is_pv) {
+                 return value;
+            };
+        };
+
+        // Null move pruning
+        if ((depth > 2) && (can_null) && (!is_pv) && (static_eval > beta)
+            && (!flagInCheck)) {
+
+            // Adaptative null move pruning
+            var R = 2; // search reduction depth
+            if (depth > 6) {
+                R = 3;
+            };
+
+            board.push_NONE();
+            val = -this.pvSearch(depth - R - 1, ply,
+                                 -beta, -beta + 1, NO_NULL, NO_PV);
+            board.pop_NONE();
+
             if (val >= beta) {
-                RecordHash(this.board, realdepth, beta, hashBETA, hash_);
                 return beta;
             };
-            // If null move pruning fails, we strore this information so we will
-            // no loose time trying null move pruning in this position at same
-            // or lower depth in the future.
-            RecordHash(this.board, realdepth, NONE, hash_NO_NULL,hash_ ^ 12345);
         };
 
-        var legal     = 0;
-        var best_move = 0;
-        // PV store in itialisation :
-        if (storePV) {
-            this.pv[pvIndex] = 0; // no PV yet
+        // Decide if we can apply futility pruning
+        if (depth <= 3 && !is_pv && !flagInCheck && Math.abs(alpha) < 9000
+            && static_eval + FUTILITY_MARGIN[depth] <= alpha) {
+            f_prune = 1;
         };
-        var pvNextIndex = pvIndex + realdepth;
 
         // extract TT move
         var entry = tt[hash_ % ttSIZE];
@@ -2143,160 +2158,204 @@ class Search {
             tt_move = entry.move;
         };
 
-        this.ply++;
         this.hash.push(hash_);
-        for (var move of ordering(this.board, this.ply,
-            this.board.genPseudoLegalMoves(), hash_, tt_move)) {
+        var moves = ordering(this.board, ply, this.board.genPseudoLegalMoves(),
+                             hash_, tt_move);
+        bestmove = NONE;
 
-            // If we have a TT move, it means it is the best, so we do not need
-            // to search all other moves, we simply have to search deeper on
-            // this move.
-            if ((tt_move != NONE) && (move != tt_move) &&
-                (entry.depth >= realdepth)) {
-                continue;
-            };
+        // Loop over the moves
+        moove_loop: for (var move of moves) {
 
             this.board.push(move);
 
             if (this.board.isCheck(turn)) { // If the move is not a legal move
                 this.board.pop(move);
-                continue;
+                continue moove_loop;
+            } else if (bestmove == NONE) { // if it's the first legal move we
+                                           // are searching
+                bestmove = move;
             };
-            legal++; // The move is a legal move
+            moves_tried++; // The move is a legal move
 
-            if (fFoundPv) {
-                // If we found the PV, no need to do a full-window search
-                val = -this.pvSearch(depth-1, -alpha-1, -alpha, mate-1, 0,
-                    false, 0, realdepth-1, false, PV_right);
-                if ((val > alpha) && (val < beta)) {
-                    // If it appears that we found a better move than the
-                    // previous PV one, do a normal re-search
-                    val = -this.pvSearch(depth-1, -beta, -alpha, mate-1,
-                        pvNextIndex, storePV, 0, realdepth-1, true, PV_right)
-                };
-            } else {
-                val = -this.pvSearch(depth-1, -beta, -alpha, mate-1,
-                    pvNextIndex, storePV, 0, realdepth-1, false, PV_right);
+            if (ply == 0 && this.depth >= 5) { // Don't be too noisy !
+                // UCI report of currmove at root
+                send_message('info depth ' + this.depth.toString() +' currmove '
+                + str_move(move) + ' currmovenumber ' + moves_tried.toString());
             };
 
-            this.board.pop(move);
+            var other_king_in_check = !this.board.isCheck(opp_color(turn));
 
-            if (val >= beta) { // beta cutoff
-                RecordHash(this.board, realdepth, beta, hashBETA, hash_, move);
-                if (!(move & 0b0_1_111_000_0000000_0000000) &&
-                   (killers[this.ply][0] != move)) {
-                    // If the move is not a capture one, let's store it as a
-                    // killer move. The idea is that if this move create a beta
-                    // cutoff now, it can also create a beta cutoff on other
-                    // positions, so we could search this move first to create
-                    // beta cutoffs and save time.
-                    killers[this.ply][1] = killers[this.ply][0];
-                    killers[this.ply][0] = move;
-                };
-                this.ply--;
-                this.hash.pop();
-                return beta;
+            // Futility pruning : at pre-fontier nodes (depth = 1), if the score
+            // plus a bishop value is not better than alpha, simply return
+            // alpha. The move has to not be a capture move or a promotion, or
+            // leave the opponent in check.
+            if (f_prune && legal_move && !(move & 0b0_1_111_111_0000000_0000000)
+                && !other_king_in_check) {
+
+                board.pop(move);
+                continue moove_loop;
             };
 
-            if (val > alpha) {
-                hashf = hashEXACT;
-                alpha = val;
-                fFoundPv = true;
-                if (!(move & 0b0_1_111_000_0000000_0000000)) {
-                    // If the move is not a capture move, let's update history
-                    // heuristics. The idea is that if this move is the best on
-                    // this position, it could also be the best on others
-                    // positions, and searching bests moves first saves time in
-                    // search.
-                    history_h[this.board.turn >> 0][(move & 0b0_1111111_0000000)
-                        >> 7][move & 0b0_1111111] += realdepth ** 2;
-                };
-
-                // PV store :
-                if (storePV && !PV_right) {
-                    this.pv[pvIndex] = move;
-                };
-                best_move = move; // To store the best move in TT
-
-                // Reset LMR if we found a better move. Can also play the role
-                // of an extension, if move ordering is really bad.
-                if (!(isCheck  || storePV)) {
-                    depth += 0.2 * legal;
-                };
-            };
+            reduction_depth = 0;   // this move has not been reduced yet
+            new_depth = depth - 1; // decrease depth by one ply
 
             // Late move reduction. With move ordering, latest moves are 
             // probably the worste. So decrease a little bit depth each time a
-            // legal move is searched.
-            if (!(isCheck  || storePV) && legal) {
-                depth -= 0.2;
+            // legal move is searched. We still need to exclude some moves 
+            // (captures, promotions, checks, killer moves) from LMR.
+            if (!is_pv && new_depth > 3  && legal_move && moves_tried > 3
+                && !other_king_in_check && !flagInCheck
+                && (killers[ply][0] != move) && (killers[ply][1] != move)
+                && !(move & 0b0_1_111_111_0000000_0000000)) {
+
+                reduction_depth = 1;
+                if (moves_tried > 8) {
+                    reduction_depth += 1;
+                };
+                new_depth -= reduction_depth;
+
             };
 
-
-        };
-
-        // End of line (and game) :
-        if (!legal) {
-            this.ply--;
-            this.hash.pop();
-            if (isCheck) {
-                return -mate;
+            // Test if this move made a draw by insufficient material.
+            // If the move is a capture.
+            if (move & (0b111 << 17)) { // ep = at least 1 pawn left -> not draw
+                if (this.is_draw(move, ply+1)) { // ply+1 since we made the move
+                    this.board.pop(move);
+                    if (alpha < 0) {
+                        bestmove = move;
+                        alpha = value_draw(depth, this.nodes) + ply + 1;
+                        if (alpha > beta) {
+                            alpha = beta;
+                            break moove_loop;
+                        };
+                    };
+                    continue moove_loop;
+                };
             };
-            return value_draw(depth, this.nodes);
+
+          // PV-search
+          re_search : while (true) {
+
+            if (!raised_alpha) {
+                val = -this.pvSearch(new_depth, ply + 1, -beta, -alpha, DO_NULL,
+                                    is_pv);
+            } else {
+                // If we found the PV, no need to do a full-window search
+                // first try to refute a move - if this fails, do a real search
+                if (-this.pvSearch(new_depth, ply + 1, -alpha - 1, -alpha,
+                                DO_NULL, NO_PV) > alpha) {
+                    val = -this.pvSearch(new_depth, ply + 1, -beta, -alpha,
+                                        DO_NULL, IS_PV);
+                };
+            };
+
+            
+            // When reduced search finds val > alpha, we make a full window
+            // search.
+            if (reduction_depth && val > alpha) {
+                new_depth += reduction_depth;
+                reduction_depth = 0;
+                continue re_search;
+            };
+
+            this.board.pop(move);
+            legal_move++; // updated here, because we want to make one search
+                          // before skipping moves
+
+            // If we can improve alpha, the move searched is the best move found
+            // so far.
+            if (val > alpha) {
+
+                bestmove = move;
+
+                if (val >= beta) { // beta cutoff
+
+                    // Update killer and history tables.
+                    if (!(move & 0b0_1_111_000_0000000_0000000)) {
+                    
+                        // If the move is not a capture move, let's update 
+                        // history heuristics. The idea is that if this move is
+                        // the best on this position, it could also be the best
+                        // on others positions, and searching bests moves first
+                        // saves time in search.
+                        history_h[this.board.turn >> 0]
+                                [(move & 0b0_1111111_0000000) >> 7]
+                                [move & 0b0_1111111] += depth ** 2;
+
+                        if (killers[ply][0] != move) {
+                            // If the move is not a capture one, let's store it
+                            // as a killer move. The idea is that if this move
+                            // create a beta cutoff now, it can also create a
+                            // beta cutoff on other positions, so we could
+                            // search this move first to create beta cutoffs
+                            // and save time.
+                            killers[ply][1] = killers[ply][0];
+                            killers[ply][0] = move;
+                        };
+
+                        // Sometimes, history table can overflow. Rare.
+                        if (history_h[this.board.turn >> 0]
+                            [(move & 0b0_1111111_0000000) >> 7]
+                            [move & 0b0_1111111] > SORT_KILL) {
+
+                            send_message('info string HISTORY OVERFLOW');
+
+                            for (var i=0; i<2; i++) {
+                                for (var j=0; j<98+1; j++) {
+                                    for (var k=0; k<98+1; k++) {
+                                        history_h[i][j][k] = 
+                                                        history_h[i][j][k] / 2;
+                                    };
+                                };
+                            };
+                        };
+                    };
+
+                    tt_flag = hashBETA;
+                    alpha = beta;
+                    break moove_loop; // no need to search on this position
+                                      // anymore
+                };
+
+                raised_alpha = 1;
+                tt_flag = hashEXACT;
+                alpha = val;
+            }; // enf if val > alpha
+
+            break re_search;
+          }; // end re_search
+        }; // end moves loop
+
+        // Checkmate and stalemate detection
+        if (!legal_move) {
+            bestmove = NONE;
+
+            if (flagInCheck) { // mate
+                alpha = -mateValue + ply;
+            } else { // draw
+                alpha = value_draw(depth, this.nodes) + ply;
+            };
         };
 
-        RecordHash(this.board, realdepth, alpha, hashf, hash_, best_move);
-        this.ply--;
         this.hash.pop();
+        RecordHash(depth, ply, alpha, tt_flag, hash_, bestmove); // store in TT
         return alpha;
-
     };
 
-    Quiescent(alpha, beta, mate=mateValue) {
+    Quiescent(alpha, beta, ply) {
         // Quiescence search : when search reaches its depth limit, we need to
         // be sure to not miss tactics before calling evaluation.
 
-        this.selfdepth = Math.max(this.selfdepth, this.ply);
+        this.selfdepth = Math.max(this.selfdepth, ply+1);
 
         var turn = this.board.turn ? WHITE : BLACK;
         this.nodes++;
-        this.ply++;
-        var val = 0;
 
-        if (this.board.isCheck(turn)) {
-            // Check-evaders extension
-            // Here, we do not want to collect the PV or try NMP, so some flags
-            // are set to true.
-            val = this.pvSearch(1, alpha, beta, mate-1, 0, false, -1,
-                this.depth-this.ply, true, true);
-            this.ply--;
-            return val;
+        // Search explosition check.
+        if (ply >= MAX_PLY+1) {
+            return evaluate(board);
         };
-
-        // stand pat pruning
-        val = evaluate(this.board);
-        if (val >= beta) {
-            this.ply--;
-            return beta;
-        };
-
-        // delta pruning
-        var delta = 900; // queen value
-        if (val < alpha - delta) {
-            this.ply--;
-            return alpha;
-        };
-
-        if (val > alpha) {
-            alpha = val;
-        };
-
-        // hard cutoff
-        if (this.depth*4 < this.ply) {
-            this.ply--;
-            return alpha; // or val ?
-        };
-
+        
         // Time out checkup
         if ((this.nodes % 1024 == 0) || this.timeout) { // check timeout
                                                              // every 1024 nodes
@@ -2306,12 +2365,23 @@ class Search {
             };
         };
 
-        if (this.is_draw()) {
-            return value_draw(0, this.nodes);
+        // stand pat pruning
+        var val = evaluate(this.board);
+        var stand_pat = val;
+
+        // check if stand-pat score causes a beta cutoff
+        if (val >= beta) {
+            return beta;
+        };
+        
+        // check if stand-pat inceases alpha
+        if (val > alpha) {
+            alpha = val;
         };
 
-        for (var move of ordering(this.board, this.ply,
+        for (var move of ordering(this.board, ply,
             this.board.genPseudoLegalCaptures())) {
+
             this.board.push(move);
 
             if (this.board.isCheck(turn)) { // if the move is not a legal one
@@ -2319,31 +2389,128 @@ class Search {
                 continue;
             };
 
-            val = -this.Quiescent(-beta, -alpha, mate-1);
+            // Delta cutoff
+            var captured_value = 0;
+            if (move & move & 0b0_1_000_000_0000000_0000000) { // ep
+                captured_value = Q_PIECE_VALUE[PAWN];
+            } else {
+                captured_value = Q_PIECE_VALUE[
+                                  (move & 0b0_111_000_0000000_0000000) >> 17];
+            };
+            if ((stand_pat + captured_value + 200 < alpha) &&
+               !(move & 0b0_111_0000000_0000000)) {
+                this.board.pop(move);
+                continue;
+            };
+
+            // Delta pruning
+            var BIG_DELTA = 975; // queen value
+            if (move & 0b0_111_0000000_0000000) {
+                BIG_DELTA += 775;
+            };
+
+            if (val < alpha - BIG_DELTA)  {
+                this.board.pop(move);
+                return alpha;
+            };
+
+            // Bad captures (not exactly SEE)
+            if (this.badCapture(move) && !(move & 0b0_111_0000000_0000000)) {
+                this.board.pop(move);
+                continue;
+            };
+
+            // Test if this move made a draw by insufficient material.
+            if (move & (0b111 << 17)) { // ep = at least 1 pawn left -> not draw
+                if (this.is_draw(move, 1)) {
+                    this.board.pop(move);
+                    if (alpha < 0) {
+                        alpha = value_draw(this.depth + ply, this.nodes) +ply+1;
+                        if (alpha > beta) {
+                            alpha = beta;
+                            break;
+                        };
+                    };
+                    continue;
+                };
+            };
+
+    
+            val = -this.Quiescent(-beta, -alpha, ply+1);
             this.board.pop(move);
 
-            if (val >= beta) {
-                this.ply--;
-                return beta;
-            };
             if (val > alpha) {
+                if (val >= beta) {
+                    return beta;
+                };
                 alpha = val;
             };
         };
 
-        this.ply--;
         return alpha;
     };
 
+    badCapture(move) {
+
+        var capturing_piece = piece_type(this.board.board[move & 0b0_1111111]);
+        // captures by pawns do not lose material
+        if (capturing_piece == PAWN) {
+            return false;
+        };
+
+        var captured_piece = (move & (0b0_111 << 17)) >> 17;
+        // captures "lower takes higher" are good by definition
+        if (Q_PIECE_VALUE[captured_piece] >= 
+            Q_PIECE_VALUE[capturing_piece] - 50) {
+            return false;
+        };
+
+        if (this.pawnRecapture(move & 0b0_1111111) &&
+            (Q_PIECE_VALUE[captured_piece] + 200
+            - Q_PIECE_VALUE[capturing_piece] < 0)) {
+            return true;
+        };
+
+        // Else, we don't know. We have to try it !
+        return false;
+    };
+
+    pawnRecapture(square) {
+        
+        if (this.badCapture.turn) { // White recaptures
+            if ((this.board.board[square + 11] == (WHITE | PAWN)) ||
+                (this.board.board[square +  9] == (WHITE | PAWN))) {
+                return true;
+            };
+        } else { // black recaptures
+            if ((this.board.board[square - 11] == (BLACK | PAWN)) ||
+                (this.board.board[square -  9] == (BLACK | PAWN))) {
+                return true;
+            };
+        };
+
+        return false;
+    };
+
     collect_PV(str=true) {
-        // Return the PV in the str or move format
+        // Return the PV in the str or move format, by looking in the TT.
+        // Note : TT overflow or replacement sheme can break the PV.
         var line = '',
             PV   = [],
             move = 0,
-            temp_board = new Board(this.board.fen());
-        for (var i=0; i<this.depth; i++) {
-            move = this.pv[index_pv(i, this.depth)];
-            if (move == 0) {
+            temp_board = new Board(this.board.fen()),
+            hash_list = [],
+            entry;
+
+        while (true) {
+            entry = tt[hash(temp_board) % ttSIZE];
+            if (entry.key == hash(temp_board)) {
+                move = entry.move;
+            } else { // the entry do not contains the position
+                break;
+            };
+
+            if (move == 0) { // there is no move stored
                 break;
             };
 
@@ -2351,11 +2518,16 @@ class Search {
                 // the move stored is illegal in this position
                 break;
             };
-            
+
             // Else : we have a PV-move !
             temp_board.push(move);
             line += str_move(move) + ' ';
             PV.push(move);
+            hash_list.push(hash(temp_board));
+
+            if (countOccurrences(hash_list, hash(temp_board)) >= 3) {
+                break;
+            };
         };
 
         if (str) {
@@ -2364,10 +2536,24 @@ class Search {
         return PV;
     };
 
-    is_draw() {
+    is_draw(move, ply) {
         if (this.board.rule_50 >= 50 || 
-            countOccurrences(this.hash, this.hash[this.ply]) >= 3) {
+            countOccurrences(this.hash, this.hash[this.ply + ply - 1]) >= 3) {
             return true;
+        };
+        if (move) {
+            var piece_count = [[0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0]];
+            var piece = EMPTY;
+            for (var square of mailbox64) {
+                piece = this.board.board[square];
+                if (piece != EMPTY) {
+                    piece_count[piece_color(piece) >> 4][piece_type(piece)]++;
+                };
+            };
+            if (sum(piece_count[0]) + sum(piece_count[1]) <= 2) { // lone kings
+                return true;
+            };
+            // TODO : draw material like KB vs K
         };
         return false;
     };
@@ -2388,8 +2574,9 @@ function hashfull() {
     if (showHashFull) {
         var counter = 1000;
         for (var i = 0; i < 1000; i++) {
-            if (i.key == 0 && i.noNull == false && i.depth == 0 && i.value==0 &&
-                i.flag == 0 && i.move == 0) {
+            var entry = tt[i % ttSIZE];
+            if (entry.key == 0 && entry.depth == 0
+                && entry.value == 0 && entry.flag == 0 && entry.move == 0) {
                 counter--;
             };
         };
@@ -2513,6 +2700,8 @@ function iterative_deepening(board, depth=5, time=false, playing=false) {
     var old_nodes = 1;
     var nodes = 0;
     var nodes_history = [];
+    var PV = [];
+    var old_PV = [];
 
     if (time) {
         depth = MAX_PLY;
@@ -2524,9 +2713,10 @@ function iterative_deepening(board, depth=5, time=false, playing=false) {
 
         history_new_iteration();
         searcher = new Search(board, curr_depth, time - elapsed);
-        evaluation = searcher.pvSearch(searcher.depth, -mateValue, mateValue,
-                                       mateValue, 0, true, 0, 0, true, false);
+        evaluation = searcher.pvSearch(searcher.depth, 0, -mateValue, mateValue,
+                                       NO_NULL, IS_PV);
         elapsed = (new Date().getTime()) - startTime;
+        PV = searcher.collect_PV(false);
 
         if (!searcher.timeout) {
             nodes = searcher.nodes;
@@ -2542,23 +2732,23 @@ function iterative_deepening(board, depth=5, time=false, playing=false) {
             + display_eval(evaluation) + WDL +' nodes ' +
             nodes + ' nps ' 
             + ((nodes / (elapsed / 1000)) >> 0).toString() + ' time ' +
-            elapsed.toString() + ' ebf ' + Math.round(nodes/old_nodes) + ' pv '+ 
+            elapsed.toString() + ' ebf ' + Math.round(nodes/old_nodes) + ' pv '+
             searcher.collect_PV() + hashfull());
         };
         if (searcher.timeout) {
-            const PV = old_searcher.collect_PV(false);
+            PV = old_PV;
             send_message('bestmove ' + str_move(PV[0]));
             return [PV, view * old_evaluation];
         }
         if ((elapsed >= time) || (curr_depth >= depth) || model_nodes_times(
-                         nodes_history, nodes/elapsed, time-elapsed, playing)) {
-            const PV = searcher.collect_PV(false);
+            nodes_history, nodes/elapsed, time-elapsed, playing)) {
             send_message('bestmove ' + str_move(PV[0]));
             return [PV, view * evaluation];
         };
 
         old_searcher = searcher;
         old_evaluation = evaluation;
+        old_PV = PV;
         old_nodes = nodes;
     };
 };
@@ -2644,44 +2834,44 @@ var book = new Book(bookFile);
 
 // testing positions taken from Stockfish 15.1 (file benchmark.cpp)
 const benchlist = [
-    'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
-    'r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 10',
-    '8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 11',
-    '4rrk1/pp1n3p/3q2pQ/2p1pb2/2PP4/2P3N1/P2B2PP/4RRK1 b - - 7 19',
-    'rq3rk1/ppp2ppp/1bnpb3/3N2B1/3NP3/7P/PPPQ1PP1/2KR3R w - - 7 14 moves d4e6',
-    'r1bq1r1k/1pp1n1pp/1p1p4/4p2Q/4Pp2/1BNP4/PPP2PPP/3R1RK1 w - - 2 14 moves' +
-    ' g2g4',
-    'r3r1k1/2p2ppp/p1p1bn2/8/1q2P3/2NPQN2/PPP3PP/R4RK1 b - - 2 15',
-    'r1bbk1nr/pp3p1p/2n5/1N4p1/2Np1B2/8/PPP2PPP/2KR1B1R w kq - 0 13',
-    'r1bq1rk1/ppp1nppp/4n3/3p3Q/3P4/1BP1B3/PP1N2PP/R4RK1 w - - 1 16',
-    '4r1k1/r1q2ppp/ppp2n2/4P3/5Rb1/1N1BQ3/PPP3PP/R5K1 w - - 1 17',
-    '2rqkb1r/ppp2p2/2npb1p1/1N1Nn2p/2P1PP2/8/PP2B1PP/R1BQK2R b KQ - 0 11',
-    'r1bq1r1k/b1p1npp1/p2p3p/1p6/3PP3/1B2NN2/PP3PPP/R2Q1RK1 w - - 1 16',
-    '3r1rk1/p5pp/bpp1pp2/8/q1PP1P2/b3P3/P2NQRPP/1R2B1K1 b - - 6 22',
-    'r1q2rk1/2p1bppp/2Pp4/p6b/Q1PNp3/4B3/PP1R1PPP/2K4R w - - 2 18',
-    '4k2r/1pb2ppp/1p2p3/1R1p4/3P4/2r1PN2/P4PPP/1R4K1 b - - 3 22',
-    '3q2k1/pb3p1p/4pbp1/2r5/PpN2N2/1P2P2P/5PP1/Q2R2K1 b - - 4 26',
-    '6k1/6p1/6Pp/ppp5/3pn2P/1P3K2/1PP2P2/3N4 b - - 0 1',
-    '3b4/5kp1/1p1p1p1p/pP1PpP1P/P1P1P3/3KN3/8/8 w - - 0 1',
-    '2K5/p7/7P/5pR1/8/5k2/r7/8 w - - 0 1 moves g5g6 f3e3 g6g5 e3f3',
-    '8/6pk/1p6/8/PP3p1p/5P2/4KP1q/3Q4 w - - 0 1',
-    '7k/3p2pp/4q3/8/4Q3/5Kp1/P6b/8 w - - 0 1',
-    '8/2p5/8/2kPKp1p/2p4P/2P5/3P4/8 w - - 0 1',
-    '8/1p3pp1/7p/5P1P/2k3P1/8/2K2P2/8 w - - 0 1',
-    '8/pp2r1k1/2p1p3/3pP2p/1P1P1P1P/P5KR/8/8 w - - 0 1',
-    '8/3p4/p1bk3p/Pp6/1Kp1PpPp/2P2P1P/2P5/5B2 b - - 0 1',
-    '5k2/7R/4P2p/5K2/p1r2P1p/8/8/8 b - - 0 1',
-    '6k1/6p1/P6p/r1N5/5p2/7P/1b3PP1/4R1K1 w - - 0 1',
-    '1r3k2/4q3/2Pp3b/3Bp3/2Q2p2/1p1P2P1/1P2KP2/3N4 w - - 0 1',
-    '6k1/4pp1p/3p2p1/P1pPb3/R7/1r2P1PP/3B1P2/6K1 w - - 0 1',
-    '8/3p3B/5p2/5P2/p7/PP5b/k7/6K1 w - - 0 1',
-    '5rk1/q6p/2p3bR/1pPp1rP1/1P1Pp3/P3B1Q1/1K3P2/R7 w - - 93 90',
-    '4rrk1/1p1nq3/p7/2p1P1pp/3P2bp/3Q1Bn1/PPPB4/1K2R1NR w - - 40 21',
-    'r3k2r/3nnpbp/q2pp1p1/p7/Pp1PPPP1/4BNN1/1P5P/R2Q1RK1 w kq - 0 16',
-    '3Qb1k1/1r2ppb1/pN1n2q1/Pp1Pp1Pr/4P2p/4BP2/4B1R1/1R5K b - - 11 40',
-    '4k3/3q1r2/1N2r1b1/3ppN2/2nPP3/1B1R2n1/2R1Q3/3K4 w - - 5 1',
+  'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+  'r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 10',
+  '8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 11',
+  '4rrk1/pp1n3p/3q2pQ/2p1pb2/2PP4/2P3N1/P2B2PP/4RRK1 b - - 7 19',
+  'rq3rk1/ppp2ppp/1bnpb3/3N2B1/3NP3/7P/PPPQ1PP1/2KR3R w - - 7 14 moves d4e6',
+  'r1bq1r1k/1pp1n1pp/1p1p4/4p2Q/4Pp2/1BNP4/PPP2PPP/3R1RK1 w - - 2 14 moves' +
+  ' g2g4',
+  'r3r1k1/2p2ppp/p1p1bn2/8/1q2P3/2NPQN2/PPP3PP/R4RK1 b - - 2 15',
+  'r1bbk1nr/pp3p1p/2n5/1N4p1/2Np1B2/8/PPP2PPP/2KR1B1R w kq - 0 13',
+  'r1bq1rk1/ppp1nppp/4n3/3p3Q/3P4/1BP1B3/PP1N2PP/R4RK1 w - - 1 16',
+  '4r1k1/r1q2ppp/ppp2n2/4P3/5Rb1/1N1BQ3/PPP3PP/R5K1 w - - 1 17',
+  '2rqkb1r/ppp2p2/2npb1p1/1N1Nn2p/2P1PP2/8/PP2B1PP/R1BQK2R b KQ - 0 11',
+  'r1bq1r1k/b1p1npp1/p2p3p/1p6/3PP3/1B2NN2/PP3PPP/R2Q1RK1 w - - 1 16',
+  '3r1rk1/p5pp/bpp1pp2/8/q1PP1P2/b3P3/P2NQRPP/1R2B1K1 b - - 6 22',
+  'r1q2rk1/2p1bppp/2Pp4/p6b/Q1PNp3/4B3/PP1R1PPP/2K4R w - - 2 18',
+  '4k2r/1pb2ppp/1p2p3/1R1p4/3P4/2r1PN2/P4PPP/1R4K1 b - - 3 22',
+  '3q2k1/pb3p1p/4pbp1/2r5/PpN2N2/1P2P2P/5PP1/Q2R2K1 b - - 4 26',
+  '6k1/6p1/6Pp/ppp5/3pn2P/1P3K2/1PP2P2/3N4 b - - 0 1',
+  '3b4/5kp1/1p1p1p1p/pP1PpP1P/P1P1P3/3KN3/8/8 w - - 0 1',
+  '2K5/p7/7P/5pR1/8/5k2/r7/8 w - - 0 1 moves g5g6 f3e3 g6g5 e3f3',
+  '8/6pk/1p6/8/PP3p1p/5P2/4KP1q/3Q4 w - - 0 1',
+  '7k/3p2pp/4q3/8/4Q3/5Kp1/P6b/8 w - - 0 1',
+  '8/2p5/8/2kPKp1p/2p4P/2P5/3P4/8 w - - 0 1',
+  '8/1p3pp1/7p/5P1P/2k3P1/8/2K2P2/8 w - - 0 1',
+  '8/pp2r1k1/2p1p3/3pP2p/1P1P1P1P/P5KR/8/8 w - - 0 1',
+  '8/3p4/p1bk3p/Pp6/1Kp1PpPp/2P2P1P/2P5/5B2 b - - 0 1',
+  '5k2/7R/4P2p/5K2/p1r2P1p/8/8/8 b - - 0 1',
+  '6k1/6p1/P6p/r1N5/5p2/7P/1b3PP1/4R1K1 w - - 0 1',
+  '1r3k2/4q3/2Pp3b/3Bp3/2Q2p2/1p1P2P1/1P2KP2/3N4 w - - 0 1',
+  '6k1/4pp1p/3p2p1/P1pPb3/R7/1r2P1PP/3B1P2/6K1 w - - 0 1',
+  '8/3p3B/5p2/5P2/p7/PP5b/k7/6K1 w - - 0 1',
+  '5rk1/q6p/2p3bR/1pPp1rP1/1P1Pp3/P3B1Q1/1K3P2/R7 w - - 93 90',
+  '4rrk1/1p1nq3/p7/2p1P1pp/3P2bp/3Q1Bn1/PPPB4/1K2R1NR w - - 40 21',
+  'r3k2r/3nnpbp/q2pp1p1/p7/Pp1PPPP1/4BNN1/1P5P/R2Q1RK1 w kq - 0 16',
+  '3Qb1k1/1r2ppb1/pN1n2q1/Pp1Pp1Pr/4P2p/4BP2/4B1R1/1R5K b - - 11 40',
+  '4k3/3q1r2/1N2r1b1/3ppN2/2nPP3/1B1R2n1/2R1Q3/3K4 w - - 5 1',
 ];
-  
+
 function bench() {
     for (var com of benchlist) {
         read_command('ucinewgame');
@@ -2693,7 +2883,7 @@ function bench() {
 };
 
 
-  
+
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
 //                                    UCI                                     //
@@ -2752,7 +2942,7 @@ function manage(time, board, inc, movestogo) {
     // for time management
     /*
     return Math.min((2 - Math.min(board.move_stack.length, 10)) * 
-            (time / Math.max(40 - board.move_stack.length, 1)) + inc, time);
+           (time / Math.max(40 - board.move_stack.length, 1)) + inc, time);
     */
     if (movestogo == 0) {
         var Y = Math.max(10, 40 - board.move_stack.length/2);
@@ -2768,9 +2958,9 @@ var board = new Board();
 process.stdin.setEncoding('utf-8');
 var readline = require('readline');
 var UCI = readline.createInterface({
-input: process.stdin,
-output: process.stdout,
-terminal: false
+  input: process.stdin,
+  output: process.stdout,
+  terminal: false
 });
 
 send_message(NAME + ' by ' + AUTHOR);
@@ -2924,6 +3114,9 @@ function read_command(command) {
                 if (command.split(' ').includes('move')) {
                     board.push(move);
                 };
+
+                // because for some reasons fast-chess bug ...
+                send_message('info depth 10 score cp 0 pv ' + str_move(move));
                 send_message('bestmove ' + str_move(move));
                 let_search = false;
             };
