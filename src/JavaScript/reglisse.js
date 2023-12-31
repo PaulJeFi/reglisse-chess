@@ -2691,6 +2691,7 @@ function iterative_deepening(board, depth=5, time=false, playing=false) {
     var startTime = new Date().getTime();
     var searcher = 0;
     var old_searcher = 0;
+    var complexity = 0;
     var evaluation = 0;
     var old_evaluation = 0;
     var elapsed = 0;
@@ -2734,6 +2735,12 @@ function iterative_deepening(board, depth=5, time=false, playing=false) {
             + ((nodes / (elapsed / 1000)) >> 0).toString() + ' time ' +
             elapsed.toString() + ' ebf ' + Math.round(nodes/old_nodes) + ' pv '+
             searcher.collect_PV() + hashfull());
+            
+            if ((depth > 2) && (PV[0] != old_PV[0])) {
+                complexity += (curr_depth-1) * Math.abs(old_evaluation - evaluation) / curr_depth;
+            };
+
+            send_message('info string complexity ' + Math.round(complexity));
         };
         if (searcher.timeout) {
             PV = old_PV;
@@ -3115,7 +3122,7 @@ function read_command(command) {
                     board.push(move);
                 };
 
-                // because for some reasons fast-chess bug ...
+                // because for some reasons fast-chess bugs ...
                 send_message('info depth 10 score cp 0 pv ' + str_move(move));
                 send_message('bestmove ' + str_move(move));
                 let_search = false;
