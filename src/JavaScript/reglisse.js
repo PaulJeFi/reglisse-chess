@@ -2351,7 +2351,7 @@ class Search {
         var turn = this.board.turn ? WHITE : BLACK;
         this.nodes++;
 
-        // Search explosition check.
+        // Search explosion check.
         if (ply >= MAX_PLY+1) {
             return evaluate(board);
         };
@@ -2649,7 +2649,7 @@ function exponentialRegression(x, y) {
 
 // This is an exponential model of how we can predict the number of nodes in the
 // next iteration knowing the previous ones. It is useful while the engine is
-// playing. It is better to not start a new iteration if we know it will
+// playing. It is better to not start a new iteration if we know it will be
 // arrested by timeouted, as it can save time for the rest of the game.
 function model_nodes_times(y, speed, time, playing) {
 
