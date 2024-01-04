@@ -17,6 +17,7 @@ It currently has the following features :
     - [PSQT](https://www.chessprogramming.org/Piece-Square_Tables) eval
     - [material balance](https://www.chessprogramming.org/Material)
     - [tapered eval](https://www.chessprogramming.org/Tapered_Eval)
+    - [Mop-up evaluation](https://www.chessprogramming.org/Mop-up_Evaluation)
     - [space control eval](https://www.chessprogramming.org/Space) _to be readded_
     - [bishop pair](https://www.chessprogramming.org/Bishop_Pair) _to be readded_
 - [Search](https://www.chessprogramming.org/Search)

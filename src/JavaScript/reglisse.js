@@ -110,6 +110,24 @@ const STARTING_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
     -1,   -1, -1, -1, -1, -1, -1, -1, -1,   -1
 ],
 
+CMD = [
+    -1,   -1, -1, -1, -1, -1, -1, -1, -1,   -1,
+    -1,   -1, -1, -1, -1, -1, -1, -1, -1,   -1,
+
+    -1,    6,  5,  4,  3,  3,  4,  5,  6,   -1,
+    -1,    5,  4,  3,  2,  2,  3,  4,  5,   -1,
+    -1,    4,  3,  2,  1,  1,  2,  3,  4,   -1,
+    -1,    3,  2,  1,  0,  0,  1,  2,  3,   -1,
+    -1,    3,  2,  1,  0,  0,  1,  2,  3,   -1,
+    -1,    4,  3,  2,  1,  1,  2,  3,  4,   -1,
+    -1,    5,  4,  3,  2,  2,  3,  4,  5,   -1,
+    -1,    6,  5,  4,  3,  3,  4,  5,  6,   -1,
+
+    -1,   -1, -1, -1, -1, -1, -1, -1, -1,   -1,
+    -1,   -1, -1, -1, -1, -1, -1, -1, -1,   -1
+
+],
+
 // Pieces, squares and colors encoding
       EMPTY = 0, NONE = 0,
       OFF_BOARD = -1,
@@ -214,6 +232,19 @@ const countOccurrences = (arr, val)=>arr.reduce((a, v)=>(v===val ? a + 1: a),0);
 // Sum of elements in array
 const sum = (arr)=>arr.reduce((a, b) => a + b, 0);
 
+function manhattanDistance(sq1, sq2) {
+    
+    var file1, file2, rank1, rank2;
+    var rankDistance, fileDistance;
+    file1 = sq1  & 7;
+    file2 = sq2  & 7;
+    rank1 = sq1 >> 3;
+    rank2 = sq2 >> 3;
+    rankDistance = Math.abs(rank2 - rank1);
+    fileDistance = Math.abs(file2 - file1);
+    console.log((rankDistance+fileDistance))
+    return rankDistance + fileDistance;
+};
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1617,7 +1648,46 @@ for (var piece of [PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING]) {
     };
 };
 
+// mop-up evaluation
+function mop_up(board) {
+    
+    var material = [0, 0]; // material score for [WHITE, BLACK]
+    var side2move = board.turn ? 1 : -1;
+    var score = 0;
+
+    for (var sq=0; sq<64; sq++) {
+        piece = board.board[mailbox64[sq]];
+        if (piece != EMPTY) {
+            material[piece_color(piece) >> 4] += eg_value[piece_type(piece)];
+        };
+    };
+
+    var winner = 1; // WHITE 
+    if (material[1] == material[0]) {
+        return 0;
+    } else if (material[1] > material[0]) {
+        winner = -1; // BLACK
+    };
+
+    score += winner * (
+        4.7 * CMD[board.board.indexOf(KING | (winner == 1 ? BLACK : WHITE))]
+        + 1.6 * (14 - manhattanDistance(
+        mailbox64.indexOf(mailbox[board.board.indexOf(KING | WHITE)]),
+        mailbox64.indexOf(mailbox[board.board.indexOf(KING | BLACK)])
+    )));
+
+    return score * side2move;
+};
+
 function evaluate(board) {
+
+    var late_eg_score = 0;
+    // if no pawns are on the board, we are in late endgame
+    if ((!board.board.includes(WHITE | PAWN)) &&
+        (!board.board.includes(BLACK | PAWN))) {
+        
+        late_eg_score = mop_up(board);
+    };
 
     var mg = [0, 0],
         eg = [0, 0],
@@ -1640,7 +1710,7 @@ function evaluate(board) {
         mgPhase = Math.min(gamePhase, 24),
         egPhase = 24 - mgPhase;
     
-    return (((mgScore * mgPhase + egScore * egPhase) / 24) + 
+    return (late_eg_score + ((mgScore * mgPhase + egScore * egPhase) / 24) + 
             (SKILL != 20 ? skill() : 0))>> 0;
 };
 
@@ -2031,7 +2101,7 @@ class Search {
         var moves_tried = 0;     // number of moves tried
         var new_depth;
 
-        // Search explosition check.
+        // Search explosion check.
         if (ply >= MAX_PLY+1) {
             return evaluate(board);
         };
@@ -2737,7 +2807,8 @@ function iterative_deepening(board, depth=5, time=false, playing=false) {
             searcher.collect_PV() + hashfull());
             
             if ((depth > 2) && (PV[0] != old_PV[0])) {
-                complexity += (curr_depth-1) * Math.abs(old_evaluation - evaluation) / curr_depth;
+                complexity += (curr_depth-1) *
+                             Math.abs(old_evaluation - evaluation) / curr_depth;
             };
 
             send_message('info string complexity ' + Math.round(complexity));
