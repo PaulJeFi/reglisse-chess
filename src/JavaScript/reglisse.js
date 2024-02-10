@@ -1881,8 +1881,12 @@ function ProbeHash(is_pv, depth, alpha, beta, hash_, ply, rule50) {
     return valUNKNOW;
 };
 
-function RecordHash(depth, ply, val, flag, hash_, best_move=0) {
+function RecordHash(depth, ply, val, flag, hash_, best_move=0, stop_search) {
     // Store information about the position in the TT.
+
+    if (stop_search) {
+        return;
+    };
 
     // Replacement scheme
     var tt_entry = tt[hash_ % ttSIZE];
@@ -2157,7 +2161,7 @@ class Search {
                         this.board.rule_50);
         var inTT = false;
         if (val != valUNKNOW) {
-            if (val != valInTT) {
+            if (val != valInTT && !is_pv) {
                 return val;
             };
             inTT = true;
@@ -2182,14 +2186,14 @@ class Search {
         };
 
         // Alpha pruning
-        if (!is_pv && !flagInCheck && depth <= 5 &&
+        if ((!is_pv) && !flagInCheck && depth <= 5 &&
             static_eval + 3000 <= alpha) {
                 return static_eval;
         };
 
         // Razoring
         var value = beta;
-        if (static_eval < alpha - 369 - 254 * depth * depth) {
+        if (!is_pv && static_eval < alpha - 369 - 254 * depth * depth) {
             value = this.Quiescent(alpha-1, alpha, ply);
             if (value < alpha && !is_pv) {
                  return value;
@@ -2408,7 +2412,7 @@ class Search {
         };
 
         this.hash.pop();
-        RecordHash(depth, ply, alpha, tt_flag, hash_, bestmove); // store in TT
+        RecordHash(depth, ply, alpha, tt_flag, hash_, bestmove, this.timeout); // store in TT
         return alpha;
     };
 
