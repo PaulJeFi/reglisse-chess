@@ -6,7 +6,7 @@ When you type ```uci``` while using Reglisse in the console, you see the followi
 id name Reglisse-JS
 id author Paul JF
 
-option name UCI_EngineAbout type string default Reglisse-JS by Paul JF, see https://github.com/PaulJeFi/reglisse-chess      
+option name UCI_EngineAbout type string default Reglisse-JS by Paul JF, see https://github.com/PaulJeFi/reglisse-chess
 option name Clear Tables type button
 option name Skill type spin default 20 min 0 max 20
 option name Hash type spin default 128 min 4 max 256
@@ -17,6 +17,8 @@ option name UseBook type check default true
 option name Book File type string default TSCP_book.txt
 option name Show HashFull type check default false
 option name Depth Infinite type spin default 5 min 1 max 30
+option name Contempt type spin default 0 min -250 max 250
+option name ShowEBF type check default false
 uciok
 ```
 
@@ -55,3 +57,9 @@ This otpion is set to false by default. If true, it give the hashfull number, in
 
 ## Depth Infinite
 If using a GUI and using Reglisse as an analysing tool at infinite depth, the real depth is limited because Reglisse does not responds to the ```stop``` command. So this option is to set the depth to search at "infinite" search. The default value is 5 (most of the time really fast), and has to be a value between 1 and 30 (searching by time and not by depth is recommanded).
+
+## Contempt
+How should the engine respect its opponent. Higher comptempt will make the engine play more riskly for a win.
+
+## ShowEBF
+Displays the _Effective Branching Factor_, an indication of how the search tree is expanded when depth increases. Disabled by default because it is not supported by every GUI.

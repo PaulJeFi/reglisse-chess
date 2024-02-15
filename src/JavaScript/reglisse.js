@@ -2211,8 +2211,10 @@ class Search {
             };
 
             board.push_NONE();
-            val = -this.pvSearch(depth - R - 1, ply,
-                                 -beta, -beta + 1, NO_NULL, NO_PV);
+            val = -this.Quiescent(-beta, -alpha, ply);
+            // More conventional is :
+            // val = -this.pvSearch(depth - R - 1, ply, -beta, -beta + 1,
+            // NO_NULL, NO_PV);
             board.pop_NONE();
 
             if (val >= beta) {
@@ -2807,8 +2809,8 @@ function iterative_deepening(board, depth=5, time=false, playing=false) {
             + display_eval(evaluation) + WDL +' nodes ' +
             nodes + ' nps ' 
             + ((nodes / (elapsed / 1000)) >> 0).toString() + ' time ' +
-            elapsed.toString() + ' ebf ' + Math.round(nodes/old_nodes) + ' pv '+
-            searcher.collect_PV() + hashfull());
+            elapsed.toString() + hashfull() + (showEBF ? ' ebf ' +
+            Math.round(nodes/old_nodes) : '') + ' pv ' + searcher.collect_PV());
             
             if ((depth > 2) && (PV[0] != old_PV[0])) {
                 complexity += (curr_depth-1) *
@@ -2981,6 +2983,7 @@ var UseBook         = true;
 var showHashFull    = false;
 var infiniteDepth   = 5;
 var UCI_ShowWDL     = false;
+var showEBF         = false;
 
 function send_message(message) {
     if (DEBUG) {
@@ -3072,6 +3075,7 @@ function read_command(command) {
                     'max 30');
         send_message('option name Contempt type spin default 0 min -250 max' +
                     ' 250');
+        send_message('option name ShowEBF type check default false');
         send_message('uciok');
     } else if (command.split(' ')[0] == 'quit') {
         process.exit();
@@ -3177,6 +3181,14 @@ function read_command(command) {
                 command.split(' ')[command.split(' ').indexOf('value') + 1]);
             send_message('info string Contempt set to ' +
                         contempt.toString());
+        };
+
+        if (command.includes('ShowEBF') && command.includes('value')) {
+            showEBF = (
+                command.split(' ')[command.split(' ').indexOf('value') + 1]
+                == 'true');
+            send_message('info string ShowEBF set to ' +
+                        showEBF.toString());
         };
 
     } else if (command.split(' ')[0] == 'go') {
