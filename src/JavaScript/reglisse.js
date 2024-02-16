@@ -1715,8 +1715,13 @@ function evaluate(board) {
 };
 
 // Add small random value to draw positions to add dynamism to the engine.
-function value_draw(depth, nodes) {
-    return depth < 4 ? 0 : (2 * nodes % 2) - 1 - contempt;
+// Comtempt factor is seen as how happy would the engine been of drawing : quite
+// happy against a stronger opponent (positive contempt), and quite unhappy
+// against a weaker opponent (negative contempt). Note that is should be done
+// for ealier draws, as avoiding late draws cans lead to a loss.
+function value_draw(depth, nodes, board, player, ply) {
+    return depth < 4 ? 0 : (2 * nodes % 2) - 1 -
+            (board.turn == player ? contempt : -contempt)/(ply+1);
 };
 
 
@@ -2075,6 +2080,8 @@ class Search {
         this.nodes = 0;
         this.ply = board.move_stack.length;
         this.selfdepth = 0;
+        this.player = this.board.turn; // to make the engine plays more or less
+                                      // agressively with contempt
 
         var temp_board = new Board(board.startpos);
         this.hash = [hash(temp_board)]; // To detect draw by 3-fold repetition
@@ -2152,7 +2159,7 @@ class Search {
         
         // Draw detection
         if (this.is_draw(NONE, ply)) {
-            return value_draw(depth, this.nodes) + ply;
+            return value_draw(depth,this.nodes,this.board,this.player,ply) +ply;
         };
         
         // TT probe
@@ -2211,10 +2218,8 @@ class Search {
             };
 
             board.push_NONE();
-            val = -this.Quiescent(-beta, -alpha, ply);
-            // More conventional is :
-            // val = -this.pvSearch(depth - R - 1, ply, -beta, -beta + 1,
-            // NO_NULL, NO_PV);
+            val = -this.pvSearch(depth - R - 1, ply, -beta, -beta + 1,
+                                                                NO_NULL, NO_PV);
             board.pop_NONE();
 
             if (val >= beta) {
@@ -2299,7 +2304,8 @@ class Search {
                     this.board.pop(move);
                     if (alpha < 0) {
                         bestmove = move;
-                        alpha = value_draw(depth, this.nodes) + ply + 1;
+                        alpha = value_draw(depth, this.nodes, this.board,
+                                           this.player, ply) + ply + 1;
                         if (alpha > beta) {
                             alpha = beta;
                             break moove_loop;
@@ -2409,12 +2415,14 @@ class Search {
             if (flagInCheck) { // mate
                 alpha = -mateValue + ply;
             } else { // draw
-                alpha = value_draw(depth, this.nodes) + ply;
+                alpha = value_draw(depth, this.nodes, this.board,
+                                   this.player, ply) + ply;
             };
         };
 
         this.hash.pop();
-        RecordHash(depth, ply, alpha, tt_flag, hash_, bestmove, this.timeout); // store in TT
+        // store in TT
+        RecordHash(depth, ply, alpha, tt_flag, hash_, bestmove, this.timeout);
         return alpha;
     };
 
@@ -2501,7 +2509,8 @@ class Search {
                 if (this.is_draw(move, 1)) {
                     this.board.pop(move);
                     if (alpha < 0) {
-                        alpha = value_draw(this.depth + ply, this.nodes) +ply+1;
+                        alpha = value_draw(this.depth + ply, this.nodes,
+                                           this.board, this.player, ply) +ply+1;
                         if (alpha > beta) {
                             alpha = beta;
                             break;
