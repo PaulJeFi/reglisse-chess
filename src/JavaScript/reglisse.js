@@ -2258,8 +2258,8 @@ class Search {
             };
             moves_tried++; // The move is a legal move
 
-            if (ply == 0 && this.depth >= 5) { // Don't be too noisy !
-                // UCI report of currmove at root
+            if (ply == 0 && this.depth >= 5 && MultiPV == 1) {
+                // UCI report of currmove at root. Don't be too noisy !
                 send_message('info depth ' + this.depth.toString() +' currmove '
                 + str_move(move) + ' currmovenumber ' + moves_tried.toString());
             };
@@ -2449,8 +2449,9 @@ class Search {
             };
         };
 
-        // stand pat pruning
-        var val = evaluate(this.board) + ((this.board.turn == this.player ? Style : -Style)/(ply+1)) >> 0;
+        // stand pat pruning -- Style is added here
+        var val = evaluate(this.board) +
+               ((this.board.turn == this.player ? Style : -Style)/(ply+1)) >> 0;
         var stand_pat = val;
 
         // check if stand-pat score causes a beta cutoff
@@ -2768,7 +2769,8 @@ function iterative_deepening(board, depth=5, time=false, playing=false) {
     if (!UCI_AnalyseMode) {
         var moves = board.genLegal();
         if (moves.length == 1) {
-            send_message('info depth 1 score cp ' + evaluate(board).toString());
+            send_message('info depth 1 score cp ' + evaluate(board).toString() +
+            ' pv ' + str_move(moves[0]));
             send_message('bestmove ' + str_move(moves[0]));
             return [moves[0], valUNKNOW];
         };
@@ -2833,7 +2835,7 @@ function iterative_deepening(board, depth=5, time=false, playing=false) {
             PV = old_PV;
             send_message('bestmove ' + str_move(PV[0]));
             return [PV, view * old_evaluation];
-        }
+        };
         if ((elapsed >= time) || (curr_depth >= depth) || model_nodes_times(
             nodes_history, nodes/elapsed, time-elapsed, playing)) {
             send_message('bestmove ' + str_move(PV[0]));
@@ -2844,6 +2846,77 @@ function iterative_deepening(board, depth=5, time=false, playing=false) {
         old_evaluation = evaluation;
         old_PV = PV;
         old_nodes = nodes;
+    };
+};
+
+// For MultiPV search
+function iterative_deepening_multiPV(board, depth=5, time=false){
+
+    var L_moves = board.genLegal();
+
+    if (!UCI_AnalyseMode) {
+        
+        if (L_moves.length == 1) {
+           send_message('info depth 1 score cp ' + evaluate(board).toString() +
+            ' pv ' + str_move(L_moves[0]));
+            send_message('bestmove ' + str_move(moves[0]));
+            return [L_moves[0], valUNKNOW];
+        };
+    }; 
+
+    var startTime = new Date().getTime();
+    var searcher = 0;
+    var evaluation = 0;
+    var elapsed = 0;
+    var info = [];
+    var best_move = NONE;
+
+    if (time) {
+        depth = MAX_PLY;
+    } else {
+        time = Infinity;
+    };
+    
+    for (var curr_depth=1; curr_depth<=depth; curr_depth++) {
+
+        history_new_iteration();
+        info = [];
+        for (var move of L_moves) {
+            board.push(move);
+            searcher = new Search(board, curr_depth-1, time - elapsed);
+            evaluation = -searcher.pvSearch(searcher.depth, 0, -mateValue,
+                                                    mateValue,  NO_NULL, IS_PV);
+            elapsed = (new Date().getTime()) - startTime;
+
+            info.push([evaluation, move, str_move(move) + ' ' +
+                    searcher.collect_PV(), searcher.selfdepth, searcher.nodes]);
+            board.pop(move);
+
+            if (searcher.timeout) {
+                send_message('bestmove ' + str_move(best_move));
+                return best_move;
+            };
+        };
+
+        elapsed = (new Date().getTime()) - startTime;
+
+        
+
+        info.sort(function(a, b){return a[0] > b[0] ? -1 : 1;})
+        best_move = info[0][1];
+
+        for (var i=0; i<Math.min(MultiPV, L_moves.length); i++) {
+            send_message('info depth ' + curr_depth.toString() + ' seldepth ' +
+            info[i][3].toString() + ' multipv ' + (i+1).toString() + ' score ' +
+            display_eval(evaluation) + ' nodes ' + info[i][4].toString() +
+            ' nps ' + ((info[i][4] / (elapsed / 1000)) >> 0).toString()
+            + ' time ' + elapsed.toString() + ' pv ' + info[i][2]);
+        };
+
+        if ((elapsed >= time) || (curr_depth >= depth)) {
+            send_message('bestmove ' + str_move(best_move));
+            return best_move;
+        };
     };
 };
 
@@ -2995,6 +3068,7 @@ var infiniteDepth   = 5;
 var UCI_ShowWDL     = false;
 var Style           = 0;
 var showEBF         = false;
+var MultiPV         = 1;
 
 function send_message(message) {
     if (DEBUG) {
@@ -3078,6 +3152,7 @@ function read_command(command) {
         send_message('option name Move Overhead type spin default 10 ' + 
                     'min 0 max 10000');
         send_message('option name UCI_AnalyseMode type check default false');
+        send_message('option name MultiPV type spin default 1 min 1 max 500');
         send_message('option name UCI_ShowWDL type check default false');
         send_message('option name UseBook type check default true');
         send_message('option name Book File type string default '+DEFAULT_BOOK);
@@ -3148,6 +3223,12 @@ function read_command(command) {
                 == 'true');
             send_message('info string UCI_AnalyseMode set to ' +
                         UCI_AnalyseMode.toString());
+        };
+
+        if (command.includes('MultiPV') && command.includes('value')) {
+            MultiPV = parseInt(
+                command.split(' ')[command.split(' ').indexOf('value') + 1]);
+            send_message('info string MutiPL set to ' + MultiPV.toString());
         };
 
         if (command.includes('UCI_ShowWDL') && command.includes('value')) {
@@ -3288,7 +3369,12 @@ function read_command(command) {
         else {
             send_message('info string searching for ' +
                 (time >> 0).toString() + ' ms at depth ' + depth.toString());
-            var move = iterative_deepening(board, depth, time, playing)[0][0];
+            if (MultiPV == 1) {
+                var move = iterative_deepening(board, depth, time,
+                                                                 playing)[0][0];
+            } else {
+                var move = iterative_deepening_multiPV(board, depth, time);
+            };
             if (command.split(' ').includes('move')) {
                 board.push(move);
             };

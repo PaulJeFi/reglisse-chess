@@ -1,6 +1,6 @@
 # UCI Options in Reglisse
 
-When you type ```uci``` while using Reglisse in the console, you see the following text :
+When you type ```uci``` while using Reglisse-JS in the console, you see the following text :
 
 ```
 id name Reglisse-JS
@@ -12,12 +12,14 @@ option name Skill type spin default 20 min 0 max 20
 option name Hash type spin default 128 min 4 max 256
 option name Move Overhead type spin default 10 min 0 max 10000
 option name UCI_AnalyseMode type check default false
+option name MultiPV type spin default 1 min 1 max 500
 option name UCI_ShowWDL type check default false
 option name UseBook type check default true
 option name Book File type string default TSCP_book.txt
 option name Show HashFull type check default false
 option name Depth Infinite type spin default 5 min 1 max 30
 option name Contempt type spin default 0 min -250 max 250
+option name Style type combo default Balanced var Active var Balanced var Passive
 option name ShowEBF type check default false
 uciok
 ```
@@ -43,6 +45,9 @@ This is the time in milliseconds used to compensate the delay in the connection 
 ## UCI_AnalyseMode
 By default, when there is only one legal move, Reglisse returns it without analysing the position. This help to not loose time when playing games. But for analizing purpose, you can activate UCI_AnalyseMode, the "analyse mode". 
 
+## MultiPV
+Outputs the ```n``` best lines. Leave to ```1``` for best performance. **WARNING :** this is still in development and inaccurate ! Unless it is really needed, better is to leave to ```1```. Do not analyse games with this option !
+
 ## UCI_ShowWDL
 Default is false. If enabled, the engine shows the estimated chance of winning, drawing and loosing the game.
 
@@ -60,6 +65,9 @@ If using a GUI and using Reglisse as an analysing tool at infinite depth, the re
 
 ## Contempt
 How should the engine respect its opponent. Higher comptempt will make the engine play more riskly for a win.
+
+## Style
+The style the engine plays. Leave to ```Balanced``` for full strength.
 
 ## ShowEBF
 Displays the _Effective Branching Factor_, an indication of how the search tree is expanded when depth increases. Disabled by default because it is not supported by every GUI.
