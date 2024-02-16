@@ -2450,7 +2450,7 @@ class Search {
         };
 
         // stand pat pruning
-        var val = evaluate(this.board);
+        var val = evaluate(this.board) + ((this.board.turn == this.player ? Style : -Style)/(ply+1)) >> 0;
         var stand_pat = val;
 
         // check if stand-pat score causes a beta cutoff
@@ -2768,6 +2768,7 @@ function iterative_deepening(board, depth=5, time=false, playing=false) {
     if (!UCI_AnalyseMode) {
         var moves = board.genLegal();
         if (moves.length == 1) {
+            send_message('info depth 1 score cp ' + evaluate(board).toString());
             send_message('bestmove ' + str_move(moves[0]));
             return [moves[0], valUNKNOW];
         };
@@ -2992,6 +2993,7 @@ var UseBook         = true;
 var showHashFull    = false;
 var infiniteDepth   = 5;
 var UCI_ShowWDL     = false;
+var Style           = 0;
 var showEBF         = false;
 
 function send_message(message) {
@@ -3084,6 +3086,8 @@ function read_command(command) {
                     'max 30');
         send_message('option name Contempt type spin default 0 min -250 max' +
                     ' 250');
+        send_message('option name Style type combo default Balanced var Active'+
+                     ' var Balanced var Passive')
         send_message('option name ShowEBF type check default false');
         send_message('uciok');
     } else if (command.split(' ')[0] == 'quit') {
@@ -3190,6 +3194,22 @@ function read_command(command) {
                 command.split(' ')[command.split(' ').indexOf('value') + 1]);
             send_message('info string Contempt set to ' +
                         contempt.toString());
+        };
+
+        if (command.includes('Style') && command.includes('value')) {
+            if (command.split(' ')[command.split(' ').indexOf('value') + 1]
+                == 'Passive') {
+                    Style = -100;
+                    send_message('info string Style set to Passive');
+            } else if (command.split(' ')[command.split(' ').indexOf(
+                'value') + 1] == 'Active') {
+                    Style = 200;
+                    send_message('info string Style set to Active');
+            } else if (command.split(' ')[command.split(' ').indexOf(
+                'value') + 1] == 'Balanced') {
+                    Style = 0;
+                    send_message('info string Style set to Balanced');
+            };
         };
 
         if (command.includes('ShowEBF') && command.includes('value')) {
