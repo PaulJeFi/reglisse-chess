@@ -242,7 +242,7 @@ function manhattanDistance(sq1, sq2) {
     rank2 = sq2 >> 3;
     rankDistance = Math.abs(rank2 - rank1);
     fileDistance = Math.abs(file2 - file1);
-    console.log((rankDistance+fileDistance))
+    //console.log((rankDistance+fileDistance))
     return rankDistance + fileDistance;
 };
 
