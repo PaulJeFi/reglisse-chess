@@ -2074,12 +2074,13 @@ FUTILITY_MARGIN = [0, 200, 300, 500]; // for futility pruning
 class Search {
     // The search class
 
-    constructor(board, depth, time=Infinity) {
+    constructor(board, depth, time=Infinity, exclude=[]) {
         this.board = board;
         this.depth = depth;
         this.nodes = 0;
         this.ply = board.move_stack.length;
         this.selfdepth = 0;
+        this.exclude = exclude;
         this.player = this.board.turn; // to make the engine plays more or less
                                       // agressively with contempt
 
@@ -2246,6 +2247,11 @@ class Search {
 
         // Loop over the moves
         moove_loop: for (var move of moves) {
+
+            // For MultiPV
+            if (ply == 0 && MultiPV != 1 && this.exclude.includes(move)) {
+                continue;
+            };
 
             this.board.push(move);
 
@@ -2764,93 +2770,7 @@ function model_nodes_times(y, speed, time, playing) {
     return false;
 };
 
-function iterative_deepening(board, depth=5, time=false, playing=false) {
-
-    if (!UCI_AnalyseMode) {
-        var moves = board.genLegal();
-        if (moves.length == 1) {
-            send_message('info depth 1 score cp ' + evaluate(board).toString() +
-            ' pv ' + str_move(moves[0]));
-            send_message('bestmove ' + str_move(moves[0]));
-            return [moves[0], valUNKNOW];
-        };
-    }; 
-
-    var startTime = new Date().getTime();
-    var searcher = 0;
-    var old_searcher = 0;
-    var complexity = 0;
-    var evaluation = 0;
-    var old_evaluation = 0;
-    var elapsed = 0;
-    var view = board.turn ? 1 : -1;
-    var WDL = '';
-    var WDL_v = [0, 0, 0];
-    var old_nodes = 1;
-    var nodes = 0;
-    var nodes_history = [];
-    var PV = [];
-    var old_PV = [];
-
-    if (time) {
-        depth = MAX_PLY;
-    } else {
-        time = Infinity;
-    };
-    
-    for (var curr_depth=1; curr_depth<=depth; curr_depth++) {
-
-        history_new_iteration();
-        searcher = new Search(board, curr_depth, time - elapsed);
-        evaluation = searcher.pvSearch(searcher.depth, 0, -mateValue, mateValue,
-                                       NO_NULL, IS_PV);
-        elapsed = (new Date().getTime()) - startTime;
-        PV = searcher.collect_PV(false);
-
-        if (!searcher.timeout) {
-            nodes = searcher.nodes;
-            nodes_history.push(nodes);
-            WDL = '';
-            if (UCI_ShowWDL) {
-                WDL_v = wdl(evaluation, board.move_stack.length);
-                WDL = ' wdl ' + WDL_v[0].toString() + ' ' + WDL_v[1].toString()
-                      + ' ' + WDL_v[2].toString();
-            }
-            send_message('info depth ' + searcher.depth.toString() +
-            ' seldepth ' + searcher.selfdepth.toString() + ' score '
-            + display_eval(evaluation) + WDL +' nodes ' +
-            nodes + ' nps ' 
-            + ((nodes / (elapsed / 1000)) >> 0).toString() + ' time ' +
-            elapsed.toString() + hashfull() + (showEBF ? ' ebf ' +
-            Math.round(nodes/old_nodes) : '') + ' pv ' + searcher.collect_PV());
-            
-            if ((depth > 2) && (PV[0] != old_PV[0])) {
-                complexity += (curr_depth-1) *
-                             Math.abs(old_evaluation - evaluation) / curr_depth;
-            };
-
-            send_message('info string complexity ' + Math.round(complexity));
-        };
-        if (searcher.timeout) {
-            PV = old_PV;
-            send_message('bestmove ' + str_move(PV[0]));
-            return [PV, view * old_evaluation];
-        };
-        if ((elapsed >= time) || (curr_depth >= depth) || model_nodes_times(
-            nodes_history, nodes/elapsed, time-elapsed, playing)) {
-            send_message('bestmove ' + str_move(PV[0]));
-            return [PV, view * evaluation];
-        };
-
-        old_searcher = searcher;
-        old_evaluation = evaluation;
-        old_PV = PV;
-        old_nodes = nodes;
-    };
-};
-
-// For MultiPV search
-function iterative_deepening_multiPV(board, depth=5, time=false){
+function iterative_deepening(board, depth=5, time=false, playing=false){
 
     var L_moves = board.genLegal();
 
@@ -2859,17 +2779,21 @@ function iterative_deepening_multiPV(board, depth=5, time=false){
         if (L_moves.length == 1) {
            send_message('info depth 1 score cp ' + evaluate(board).toString() +
             ' pv ' + str_move(L_moves[0]));
-            send_message('bestmove ' + str_move(moves[0]));
+            send_message('bestmove ' + str_move(L_moves[0]));
             return [L_moves[0], valUNKNOW];
         };
     }; 
 
     var startTime = new Date().getTime();
     var searcher = 0;
-    var evaluation = 0;
+    var evaluation = mateValue;
     var elapsed = 0;
-    var info = [];
     var best_move = NONE;
+    var WDL = '';
+    var WDL_v = [0, 0, 0];
+    var exclude = [];
+    var nodes_history = 0;
+    var old_nodes = 1;
 
     if (time) {
         depth = MAX_PLY;
@@ -2880,40 +2804,49 @@ function iterative_deepening_multiPV(board, depth=5, time=false){
     for (var curr_depth=1; curr_depth<=depth; curr_depth++) {
 
         history_new_iteration();
-        info = [];
-        for (var move of L_moves) {
-            board.push(move);
-            searcher = new Search(board, curr_depth-1, time - elapsed);
-            evaluation = -searcher.pvSearch(searcher.depth, 0, -mateValue,
-                                                    mateValue,  NO_NULL, IS_PV);
+        evaluation = mateValue;
+        exclude = [];
+    
+        for (var i=0; i<Math.min(MultiPV, L_moves.length); i++) {
+            searcher = new Search(board, curr_depth, time - elapsed, exclude);
+            evaluation = searcher.pvSearch(searcher.depth, 0, -mateValue,
+                                                    evaluation, NO_NULL, IS_PV);
             elapsed = (new Date().getTime()) - startTime;
-
-            info.push([evaluation, move, str_move(move) + ' ' +
-                    searcher.collect_PV(), searcher.selfdepth, searcher.nodes]);
-            board.pop(move);
+            exclude.push(searcher.collect_PV(false)[0]);
+            nodes_history += searcher.nodes;
 
             if (searcher.timeout) {
                 send_message('bestmove ' + str_move(best_move));
                 return best_move;
             };
+
+            if (i == 0) {
+                best_move = searcher.collect_PV(false)[0];
+            };
+
+            WDL = '';
+            if (UCI_ShowWDL) {
+                WDL_v = wdl(evaluation, board.move_stack.length);
+                WDL = ' wdl ' + WDL_v[0].toString() + ' ' + WDL_v[1].toString()
+                      + ' ' + WDL_v[2].toString();
+            };
+
+            send_message('info depth ' + searcher.depth.toString() +
+            ' seldepth ' + searcher.selfdepth.toString() + (MultiPV == 1 ? '' :
+            ' multipv ' + (i+1).toString()) + ' score '
+            + display_eval(evaluation) + WDL +' nodes ' + searcher.nodes +
+            ' nps ' + ((searcher.nodes / (elapsed / 1000)) >> 0).toString() +
+            ' time ' + elapsed.toString() + hashfull() +
+            ((showEBF && MultiPV == 1)? ' ebf ' + Math.round(
+            searcher.nodes/old_nodes) : '') + ' pv ' + searcher.collect_PV());
+            
         };
 
-        elapsed = (new Date().getTime()) - startTime;
+        old_nodes = searcher.nodes;
 
-        
-
-        info.sort(function(a, b){return a[0] > b[0] ? -1 : 1;})
-        best_move = info[0][1];
-
-        for (var i=0; i<Math.min(MultiPV, L_moves.length); i++) {
-            send_message('info depth ' + curr_depth.toString() + ' seldepth ' +
-            info[i][3].toString() + ' multipv ' + (i+1).toString() + ' score ' +
-            display_eval(evaluation) + ' nodes ' + info[i][4].toString() +
-            ' nps ' + ((info[i][4] / (elapsed / 1000)) >> 0).toString()
-            + ' time ' + elapsed.toString() + ' pv ' + info[i][2]);
-        };
-
-        if ((elapsed >= time) || (curr_depth >= depth)) {
+        if ((elapsed >= time) || (curr_depth >= depth) || (model_nodes_times(
+            nodes_history, searcher.nodes/elapsed, time-elapsed, playing) &&
+            MultiPV == 1)) {
             send_message('bestmove ' + str_move(best_move));
             return best_move;
         };
@@ -3369,12 +3302,7 @@ function read_command(command) {
         else {
             send_message('info string searching for ' +
                 (time >> 0).toString() + ' ms at depth ' + depth.toString());
-            if (MultiPV == 1) {
-                var move = iterative_deepening(board, depth, time,
-                                                                 playing)[0][0];
-            } else {
-                var move = iterative_deepening_multiPV(board, depth, time);
-            };
+            var move = iterative_deepening(board, depth, time, playing);
             if (command.split(' ').includes('move')) {
                 board.push(move);
             };

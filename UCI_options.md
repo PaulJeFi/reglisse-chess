@@ -46,7 +46,7 @@ This is the time in milliseconds used to compensate the delay in the connection 
 By default, when there is only one legal move, Reglisse returns it without analysing the position. This help to not loose time when playing games. But for analizing purpose, you can activate UCI_AnalyseMode, the "analyse mode". 
 
 ## MultiPV
-Outputs the ```n``` best lines. Leave to ```1``` for best performance. **WARNING :** this is still in development and inaccurate ! Unless it is really needed, better is to leave to ```1```. Do not analyse games with this option !
+Outputs the ```n``` best lines. Leave to ```1``` for best performance.
 
 ## UCI_ShowWDL
 Default is false. If enabled, the engine shows the estimated chance of winning, drawing and loosing the game.
