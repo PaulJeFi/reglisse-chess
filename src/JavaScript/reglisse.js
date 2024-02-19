@@ -3161,7 +3161,7 @@ function read_command(command) {
         if (command.includes('MultiPV') && command.includes('value')) {
             MultiPV = parseInt(
                 command.split(' ')[command.split(' ').indexOf('value') + 1]);
-            send_message('info string MutiPL set to ' + MultiPV.toString());
+            send_message('info string MutiPV set to ' + MultiPV.toString());
         };
 
         if (command.includes('UCI_ShowWDL') && command.includes('value')) {
