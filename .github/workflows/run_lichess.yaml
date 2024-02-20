@@ -9,9 +9,9 @@ jobs:
       run:
         working-directory: lichess
     steps:
-      - name: Make the script files executable
-        run: chmod +x ./script.sh
+      #- name: Make the script files executable
+      #  run: chmod +x ./script.sh
       - name: Run the scripts
         run: |
-          #cd lichess
+#   cd lichess
           sh script.sh
