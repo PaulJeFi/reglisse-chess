@@ -5,13 +5,13 @@ on:
 jobs:
   example-job:
     runs-on: ubuntu-latest
-    #defaults:
-    #  run:
-    #    working-directory: ./scripts
+    defaults:
+      run:
+        working-directory: lichess
     steps:
       - name: Make the script files executable
-        run: chmod +x ./lichess/script.sh
+        run: chmod +x ./script.sh
       - name: Run the scripts
         run: |
-          cd lichess
+          #cd lichess
           sh script.sh
