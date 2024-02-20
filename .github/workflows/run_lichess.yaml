@@ -8,4 +8,5 @@ jobs:
     steps:
       - name: Run the scripts
         run: |
-          sh lichess/script.sh
+          cd lichess
+          sh script.sh
