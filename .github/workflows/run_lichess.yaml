@@ -5,10 +5,7 @@ on:
 jobs:
   example-job:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: lichess
     steps:
       - name: Run the scripts
         run: |
-          sh script.sh
+          sh lichess/script.sh
