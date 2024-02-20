@@ -13,4 +13,4 @@ jobs:
         run: chmod +x ./lichess/script.sh
       - name: Run the scripts
         run: |
-          ./lichess/script.sh
+          sh ./lichess/script.sh
