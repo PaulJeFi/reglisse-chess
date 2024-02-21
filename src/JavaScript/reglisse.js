@@ -1045,10 +1045,10 @@ class Board {
 
     is_horde_end() {
         return ((!this.board.includes(WHITE | PAWN))   &&
-                (!this.board.includes(BLACK | BISHOP)) &&
-                (!this.board.includes(BLACK | ROOK))   &&
-                (!this.board.includes(BLACK | KNIGHT)) &&
-                (!this.board.includes(BLACK | QUEEN)));
+                (!this.board.includes(WHITE | BISHOP)) &&
+                (!this.board.includes(WHITE | KNIGHT)) &&
+                (!this.board.includes(WHITE | ROOK)) &&
+                (!this.board.includes(WHITE | QUEEN)));
     };
 
     genPseudoLegalMoves() {
@@ -1731,7 +1731,7 @@ function evaluate(board) {
         egPhase = 24 - mgPhase;
     
     return (late_eg_score + ((mgScore * mgPhase + egScore * egPhase) / 24) +
-            (variant == 2 ? 1000 : 0) * side2move + // because horde is hard ... 
+            //(variant == 2 ? 977 : 0) * side2move + // because horde is hard ... 
             (SKILL != 20 ? skill() : 0))>> 0;       // skill level
 };
 
