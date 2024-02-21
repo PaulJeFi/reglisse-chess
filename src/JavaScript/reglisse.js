@@ -1730,8 +1730,9 @@ function evaluate(board) {
         mgPhase = Math.min(gamePhase, 24),
         egPhase = 24 - mgPhase;
     
-    return (late_eg_score + ((mgScore * mgPhase + egScore * egPhase) / 24) + 
-            (SKILL != 20 ? skill() : 0))>> 0;
+    return (late_eg_score + ((mgScore * mgPhase + egScore * egPhase) / 24) +
+            (variant == 2 ? 1000 : 0) * side2move + // because horde is hard ... 
+            (SKILL != 20 ? skill() : 0))>> 0;       // skill level
 };
 
 // Add small random value to draw positions to add dynamism to the engine.
