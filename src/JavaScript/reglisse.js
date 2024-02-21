@@ -802,7 +802,8 @@ class Board {
             else {
 
                 // If is on its starting square, try double pawn push
-                if (check_number(square, 8, 2)) { // pawn on starting square
+                if (check_number(square, 8, 2) || (variant == 2
+                    && check_number(square, 9, 2))) { // pawn on starting square
                     if ((this.board[square - 10] == EMPTY) 
                       && (this.board[square - 20] == EMPTY)) {
                         moves.push(encode_move(
@@ -1042,11 +1043,19 @@ class Board {
             this.board.indexOf(KING | (this.turn ? BLACK : WHITE)));
     };
 
+    is_horde_end() {
+        return ((!this.board.includes(WHITE | PAWN))   &&
+                (!this.board.includes(BLACK | BISHOP)) &&
+                (!this.board.includes(BLACK | ROOK))   &&
+                (!this.board.includes(BLACK | KNIGHT)) &&
+                (!this.board.includes(BLACK | QUEEN)));
+    };
+
     genPseudoLegalMoves() {
 
         // Do not generate moves in KOTH checkmate !
-        if (UCI_Variant && this.is_KOTH_end()) {
-            console.log('no moves');
+        if ((variant == 1 && this.is_KOTH_end()) ||
+             variant == 1 && this.is_horde_end()) {
             return [];
         };
 
@@ -1417,7 +1426,7 @@ function perft(board, depth) {
     for (var move of board.genPseudoLegalMoves()) {
         var turn = board.turn ? WHITE : BLACK;
         board.push(move);
-        if (!(board.isCheck(turn) || (UCI_Variant && board.is_KOTH_end()))) {
+        if (!(board.isCheck(turn))) {
             nodes += perft(board, depth-1);
         };
         board.pop(move);
@@ -1435,7 +1444,7 @@ function PERFT(board, depth, indent='') {
     for (var move of board.genPseudoLegalMoves()) {
         var turn = board.turn ? WHITE : BLACK;
         board.push(move);
-        if (!(board.isCheck(turn) || (UCI_Variant && board.is_KOTH_end()))) {
+        if (!(board.isCheck(turn))) {
             //var node = PERFT(board, depth-1, indent+'\t');
             var node = perft(board, depth-1);
             nodes += node;
@@ -2429,7 +2438,9 @@ class Search {
         if (!legal_move) {
             bestmove = NONE;
 
-            if (flagInCheck || (UCI_Variant && this.board.is_KOTH_end())) { // mate
+            if (flagInCheck || (variant == 1 &&
+                this.board.is_KOTH_end()) || (variant == 2 &&
+                    this.board.is_horde_end())) { // mate
                 alpha = -mateValue + ply;
             } else { // draw
                 alpha = value_draw(depth, this.nodes, this.board,
@@ -3013,7 +3024,7 @@ var UCI_ShowWDL     = false;
 var Style           = 0;
 var showEBF         = false;
 var MultiPV         = 1;
-var UCI_Variant     = false;
+var variant         = 0;      // 0: chess,   1: KOTH,    2: horde
 
 function send_message(message) {
     if (DEBUG) {
@@ -3103,7 +3114,7 @@ function read_command(command) {
         send_message('option name Book File type string default '+DEFAULT_BOOK);
         send_message('option name Show HashFull type check default false');
         send_message('option name UCI_Variant type combo default chess var ' +
-                    'chess var kingofthehill');
+                    'chess var kingofthehill var horde');
         send_message('option name Depth Infinite type spin default 5 min 1 ' + 
                     'max 30');
         send_message('option name Contempt type spin default 0 min -250 max' +
@@ -3213,13 +3224,18 @@ function read_command(command) {
         if (command.includes('UCI_Variant') && command.includes('value')) {
             if (command.split(' ')[command.split(' ').indexOf('value') + 1]
                 == 'chess') {
-                    UCI_Variant = false;
+                    variant = 0;
                     send_message('info string UCI_Variant set to chess');
             } else if (command.split(' ')[command.split(' ').indexOf(
                 'value') + 1] == 'kingofthehill') {
-                    UCI_Variant = true;
+                    variant = 1;
                     send_message('info string UCI_Variant set to ' +
                     'kingofthehill');
+            } else if (command.split(' ')[command.split(' ').indexOf(
+                'value') + 1] == 'horde') {
+                    variant = 2;
+                    send_message('info string UCI_Variant set to ' +
+                    'horde');
             };
         };
 

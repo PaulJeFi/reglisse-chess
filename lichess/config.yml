@@ -142,7 +142,7 @@ challenge:                         # Incoming challenges.
 #   - atomic
 #   - chess960
 #   - crazyhouse
-#   - horde
+    - horde
     - kingOfTheHill
 #   - racingKings
 #   - threeCheck
