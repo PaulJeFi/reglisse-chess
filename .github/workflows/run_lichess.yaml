@@ -1,3 +1,4 @@
+'
 on:
   push:
     branches:
@@ -11,3 +12,4 @@ jobs:
         run: |
           cd lichess
           sh script.sh
+'

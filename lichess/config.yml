@@ -10,7 +10,7 @@ engine:                            # Engine settings.
   ponder: false                    # Think on opponent's time.
 
   polyglot:
-    enabled: true                 # Activate polyglot book.
+    enabled: true                  # Activate polyglot book.
     book:
       standard:                    # List of book file paths for variant standard.
         - engines/book1.bin
@@ -38,14 +38,14 @@ engine:                            # Engine settings.
   online_moves:
     max_out_of_book_moves: 10      # Stop using online opening books after they don't have a move for 'max_out_of_book_moves' positions. Doesn't apply to the online endgame tablebases.
     max_retries: 2                 # The maximum amount of retries when getting an online move.
+    # max_depth: 10                # How many moves from the start to take from online books. Default is no limit.
     chessdb_book:
       enabled: true                # Whether or not to use chessdb book.
       min_time: 20                 # Minimum time (in seconds) to use chessdb book.
       move_quality: "best"         # One of "all", "good", "best".
       min_depth: 20                # Only for move_quality: "best".
-      contribute: true
     lichess_cloud_analysis:
-      enabled: true               # Whether or not to use lichess cloud analysis.
+      enabled: true                # Whether or not to use lichess cloud analysis.
       min_time: 20                 # Minimum time (in seconds) the bot must have to use cloud analysis.
       move_quality: "best"         # One of "good", "best".
       max_score_difference: 50     # Only for move_quality: "good". The maximum score difference (in cp) between the best move and the other moves.
@@ -63,7 +63,7 @@ engine:                            # Engine settings.
       min_time: 2                  # Minimum time (in seconds) the bot must have to use online EGTBs.
       max_pieces: 7                # Maximum number of pieces on the board to use endgame tablebases.
       source: "lichess"            # One of "lichess", "chessdb".
-      move_quality: "best"         # One of "good", "best", "suggest" (it takes all the "good" moves and tells the engine to only consider these; will move instantly if there is only 1 "good" move).
+      move_quality: "best"         # One of "best" or "suggest" (it takes all the moves with the same WDL and tells the engine to only consider these; will move instantly if there is only 1 "good" move).
 
   lichess_bot_tbs:                 # The tablebases list here will be read by lichess-bot, not the engine.
     syzygy:
@@ -71,14 +71,14 @@ engine:                            # Engine settings.
       paths:                       # Paths to Syzygy endgame tablebases.
         - "engines/syzygy"
       max_pieces: 7                # Maximum number of pieces in the endgame tablebase.
-      move_quality: "best"         # One of "good", "best", "suggest" (it takes all the "good" moves and tells the engine to only consider these; will move instantly if there is only 1 "good" move).
+      move_quality: "best"         # One of "best" or "suggest" (it takes all the moves with the same WDL and tells the engine to only consider these; will move instantly if there is only 1 "good" move).
     gaviota:
       enabled: false               # Whether or not to use local gaviota endgame tablebases.
       paths:
         - "engines/gaviota"
       max_pieces: 5
       min_dtm_to_consider_as_wdl_1: 120 # The minimum DTM to consider as syzygy WDL=1/-1. Set to 100 to disable.
-      move_quality: "best"         # One of "good", "best", "suggest" (it takes all the "good" moves and tells the engine to only consider these; will move instantly if there is only 1 "good" move).
+      move_quality: "best"         # One of "best" or "suggest" (it takes all the moves with the same WDL and tells the engine to only consider these; will move instantly if there is only 1 "good" move).
 
 # engine_options:                  # Any custom command line params to pass to the engine.
 #   cpuct: 3.1
@@ -115,6 +115,7 @@ abort_time: 30                     # Time to abort a game in seconds when there 
 fake_think_time: false             # Artificially slow down the bot to pretend like it's thinking.
 rate_limiting_delay: 0             # Time (in ms) to delay after sending a move to prevent "Too Many Requests" errors.
 move_overhead: 2000                # Increase if your bot flags games too often.
+quit_after_all_games_finish: true  # If set to true, then pressing Ctrl-C to quit will only stop lichess-bot after all current games have finished.
 
 correspondence:
   move_time: 60                    # Time in seconds to search in correspondence games.
@@ -142,7 +143,7 @@ challenge:                         # Incoming challenges.
 #   - chess960
 #   - crazyhouse
 #   - horde
-#   - kingOfTheHill
+    - kingOfTheHill
 #   - racingKings
 #   - threeCheck
   time_controls:                   # Time controls to accept.
@@ -162,7 +163,7 @@ challenge:                         # Incoming challenges.
 #   - user4
 # recent_bot_challenge_age: 60     # Maximum age of a bot challenge to be considered recent in seconds
 # max_recent_bot_challenges: 2     # Maximum number of recent challenges that can be accepted from the same bot
-  bullet_requires_increment: true # Require that bullet game challenges from bots have a non-zero increment
+  bullet_requires_increment: true  # Require that bullet game challenges from bots have a non-zero increment
 
 greeting:
   # Optional substitution keywords (include curly braces):
@@ -175,9 +176,14 @@ greeting:
   goodbye_spectators: "Thanks for watching!" # Message to send to spectator chat at the end of a game
 
 # pgn_directory: "game_records"    # A directory where PGN-format records of the bot's games are kept
+# pgn_file_grouping: "game"        # How to group games into files. Options are "game", "opponent", and "all"
+                                   # "game" (default) - every game is written to a different file named "{White name} vs. {Black name} - {lichess game ID}.pgn"
+                                   # "opponent" - every game with a given opponent is written to a file named "{Bot name} games vs. {Opponent name}.pgn"
+                                   # "all" - every game is written to a single file named "{Bot name} games.pgn"
 
 matchmaking:
-  allow_matchmaking: true         # Set it to 'true' to challenge other bots.
+  allow_matchmaking: true          # Set it to 'true' to challenge other bots.
+  allow_during_games: false        # Set it to 'true' to create challenges during long games.
   challenge_variant: "random"      # If set to 'random', the bot will choose one variant from the variants enabled in 'challenge.variants'.
   challenge_timeout: 30            # Create a challenge after being idle for 'challenge_timeout' minutes. The minimum is 1 minute.
   challenge_initial_time:          # Initial time in seconds of the challenge (to be chosen at random).
@@ -192,9 +198,37 @@ matchmaking:
 # opponent_min_rating: 600         # Opponents rating should be above this value (600 is the minimum rating in lichess).
 # opponent_max_rating: 4000        # Opponents rating should be below this value (4000 is the maximum rating in lichess).
   opponent_rating_difference: 100  # The maximum difference in rating between the bot's rating and opponent's rating.
+  rating_preference: "none"        # One of "none", "high", "low".
   opponent_allow_tos_violation: false # Set to 'true' to allow challenging bots that violated the Lichess Terms of Service.
   challenge_mode: "random"         # Set it to the mode in which challenges are sent. Possible options are 'casual', 'rated' and 'random'.
   challenge_filter: none           # If a bot declines a challenge, do not issue a similar challenge to that bot. Possible options are 'none', 'coarse', and 'fine'.
 # block_list:                      # The list of bots that will not be challenged
 #   - user1
 #   - user2
+
+# overrides:                       # List of overrides for the matchmaking specifications above. When a challenge is created, either the default specification above or one of the overrides will be randomly chosen.
+#   bullet_only_horde:             # Name of the override. Can be anything as long as each override has a unique name ("bullet_only_horde" and "easy_chess960" in these examples).
+#     challenge_variant: "horde"   # List of options to override. Only the options mentioned will change when making the challenge. The rest will follow the default matchmaking options above.
+#     challenge_initial_time:
+#       - 1
+#       - 2
+#     challenge_increment:
+#       - 0
+#       - 1
+#
+#   easy_chess960:
+#     challenge_variant: "chess960"
+#     opponent_min_rating: 400
+#     opponent_max_rating: 1200
+#     opponent_rating_difference:
+#     challenge_mode: casual
+#
+#   no_pressure_correspondence:
+#     challenge_initial_time:
+#     challenge_increment:
+#     challenge_days:
+#       - 2
+#       - 3
+#     challenge_mode: casual
+#
+# The following configurations cannot be overridden: allow_matchmaking, challenge_timeout, challenge_filter and block_list.
