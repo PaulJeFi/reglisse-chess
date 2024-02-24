@@ -1055,7 +1055,7 @@ class Board {
 
         // Do not generate moves in KOTH checkmate !
         if ((variant == 1 && this.is_KOTH_end()) ||
-             variant == 1 && this.is_horde_end()) {
+             variant == 2 && this.is_horde_end()) {
             return [];
         };
 
