@@ -7,8 +7,7 @@ const ABOUT  = NAME + ' by ' + AUTHOR + ', see ' +
 
 const fs = require('fs');
 
-
-
+//#region Constants
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
 //                               CONSTANTS                                    //
@@ -246,7 +245,8 @@ function manhattanDistance(sq1, sq2) {
     return rankDistance + fileDistance;
 };
 
-
+//#endregion
+//#region BOARD
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
 //                                 BOARD                                      //
@@ -1405,7 +1405,8 @@ class Board {
 };
 
 
-
+//#endregion
+//#region PERFT
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
 //                                 PERFT                                      //
@@ -1457,7 +1458,8 @@ function PERFT(board, depth, indent='') {
 };
 
 
-
+//#endregion
+//#region EVALUATION
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
 //                                EVALUATION                                  //
@@ -1746,7 +1748,8 @@ function value_draw(depth, nodes, board, player, ply) {
 };
 
 
-
+//#endregion
+//#region ZOBRIST HASHING
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
 //                             ZOBRIST HASHING                                //
@@ -1795,7 +1798,8 @@ function hash(board) {
 };
 
 
-
+//#endregion
+//#region TRANSPOSITION TABLE
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
 //                           TRANSPOSITION TABLE                              //
@@ -1931,7 +1935,8 @@ function RecordHash(depth, ply, val, flag, hash_, best_move=0, stop_search) {
 };
 
 
-
+//#endregion
+//#region MOVE ORDERING
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
 //                             MOVE ORDERING                                  //
@@ -2073,7 +2078,8 @@ function ordering(board, ply, moves, hash_=false, tt_move=NONE) {
 };
 
 
-
+//#endregion
+//#region SEARCH
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
 //                                 SEARCH                                     //
@@ -2876,7 +2882,8 @@ function iterative_deepening(board, depth=5, time=false, playing=false){
     };
 };
 
-
+//#endregion
+//#region BOOK
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
 //                                   BOOK                                     //
@@ -2945,7 +2952,8 @@ class Book {
 var book = new Book(bookFile);
 
 
-
+//#endregion
+//#region BENCH
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
 //                                   BENCH                                    //
@@ -3006,7 +3014,8 @@ function bench() {
 };
 
 
-
+//#endregion
+//#region UCI
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
 //                                    UCI                                     //
@@ -3385,3 +3394,4 @@ function read_command(command) {
         bench();
     };
 };
+//#endregion
