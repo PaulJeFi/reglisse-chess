@@ -2291,9 +2291,9 @@ class Search {
             };
             moves_tried++; // The move is a legal move
 
-            if (ply == 0 && this.depth >= 5 && MultiPV == 1) {
+            if (ply == 0 && depth >= 5 && MultiPV == 1) {
                 // UCI report of currmove at root. Don't be too noisy !
-                send_message('info depth ' + this.depth.toString() +' currmove '
+                send_message('info depth ' + depth.toString() +' currmove '
                 + str_move(move) + ' currmovenumber ' + moves_tried.toString());
             };
 
@@ -2627,7 +2627,7 @@ class Search {
             entry = tt[hash(temp_board) % ttSIZE];
             if (entry.key == hash(temp_board)) {
                 move = entry.move;
-            } else { // the entry do not contains the position
+            } else { // the entry does not contains the position
                 break;
             };
 
@@ -2647,6 +2647,12 @@ class Search {
             hash_list.push(hash(temp_board));
 
             if (countOccurrences(hash_list, hash(temp_board)) >= 3) {
+                // avoid endless repetitions
+                break;
+            };
+
+            if (PV.length >= this.depth) {
+                // do not add unverified PV moves
                 break;
             };
         };
@@ -2805,8 +2811,9 @@ function iterative_deepening(board, depth=5, time=false, playing=false){
 
     if (!UCI_AnalyseMode) {
         
+        // If there is only one legal move, do not waste time
         if (L_moves.length == 1) {
-           send_message('info depth 1 score cp ' + evaluate(board).toString() +
+            send_message('info depth 1 score cp ' + evaluate(board).toString() +
             ' pv ' + str_move(L_moves[0]));
             send_message('bestmove ' + str_move(L_moves[0]));
             return [L_moves[0], valUNKNOW];
