@@ -1716,6 +1716,7 @@ function evaluate(board) {
         gamePhase = 0,
         piece = 0;
 
+    // PSQT + material
     for (var sq=0; sq<64; sq++) {
         piece = board.board[mailbox64[sq]];
         if (piece != EMPTY) {
@@ -1724,6 +1725,39 @@ function evaluate(board) {
             gamePhase += gamephaseInc[PIECES[piece]];
         };
     };
+
+    // Minor pieces developed
+    if (board.board[92] != (WHITE | KNIGHT)) { mg[0] += 8; };
+    if (board.board[93] != (WHITE | BISHOP)) { mg[0] += 8; };
+    if (board.board[96] != (WHITE | BISHOP)) { mg[0] += 8; };
+    if (board.board[97] != (WHITE | KNIGHT)) { mg[0] += 8; };
+    if (board.board[22] != (BLACK | KNIGHT)) { mg[1] += 8; };
+    if (board.board[23] != (BLACK | BISHOP)) { mg[1] += 8; };
+    if (board.board[26] != (BLACK | BISHOP)) { mg[1] += 8; };
+    if (board.board[27] != (BLACK | KNIGHT)) { mg[1] += 8; };
+
+    // Trapped bishop
+    if (board.board[31] == (WHITE | BISHOP)  &&  board.board[42] == (BLACK | PAWN)) { mg[0] -= 120; };
+    if (board.board[38] == (WHITE | BISHOP)  &&  board.board[47] == (BLACK | PAWN)) { mg[0] -= 120; };
+    if (board.board[81] == (BLACK | BISHOP)  &&  board.board[72] == (WHITE | PAWN)) { eg[1] -= 120; };
+    if (board.board[88] == (BLACK | BISHOP)  &&  board.board[77] == (WHITE | PAWN)) { eg[1] -= 120; };
+
+    // Central pawn control
+    if ((board.board[64] == (WHITE | PAWN)  ||  board.board[54] == (WHITE | PAWN)) &&
+        (board.board[65] == (WHITE | PAWN)  ||  board.board[55] == (WHITE | PAWN))) {
+        mg[0] += 15;
+    };
+    if ((board.board[64] == (BLACK | PAWN)  ||  board.board[54] == (BLACK | PAWN)) &&
+        (board.board[65] == (BLACK | PAWN)  ||  board.board[55] == (BLACK | PAWN))) {
+        mg[1] += 15;
+    };
+
+    // Undevelopped central pawn
+    if (board.board[84] == (WHITE | PAWN)  &&  board.board[74] != EMPTY) { mg[0] -= 15; };
+    if (board.board[85] == (WHITE | PAWN)  &&  board.board[75] != EMPTY) { mg[0] -= 15; };
+    if (board.board[34] == (BLACK | PAWN)  &&  board.board[44] != EMPTY) { mg[1] -= 15; };
+    if (board.board[35] == (BLACK | PAWN)  &&  board.board[45] != EMPTY) { mg[1] -= 15; };
+
 
     var side2move = board.turn ? 0 : 1;
 

@@ -18,6 +18,10 @@ It currently has the following features :
     - [material balance](https://www.chessprogramming.org/Material)
     - [tapered eval](https://www.chessprogramming.org/Tapered_Eval)
     - [Mop-up evaluation](https://www.chessprogramming.org/Mop-up_Evaluation)
+    - [Trapped bisops](https://www.chessprogramming.org/Trapped_Pieces)
+    - [Minor pieces development](https://www.chessprogramming.org/Development)
+    - [Center control](https://www.chessprogramming.org/Center_Control) : [Pawn center](https://www.chessprogramming.org/Pawn_Center)
+    - [Unadvanced central pawns](https://www.chessprogramming.org/Development#Eval_Considerations)
     - [space control eval](https://www.chessprogramming.org/Space) _to be readded_
     - [bishop pair](https://www.chessprogramming.org/Bishop_Pair) _to be readded_
 - [Search](https://www.chessprogramming.org/Search)
