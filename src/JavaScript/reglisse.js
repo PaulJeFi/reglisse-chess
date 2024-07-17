@@ -2180,12 +2180,15 @@ class Search {
         };
 
         // Time out checkup
-        if ((this.nodes % 1024 == 0) || this.timeout) { // check timeout
+        if (this.nodes % 1024 == 0) { // check timeout
                                                         // every 1024 nodes
             if ((new Date().getTime()) - this.startTime >= this.time_to_search){
                 this.timeout = true;
                 return 0;
             };
+        };
+        if (this.timeout) {
+            return 0;
         };
 
         // Mate distance pruning
@@ -2510,12 +2513,15 @@ class Search {
         };
         
         // Time out checkup
-        if ((this.nodes % 1024 == 0) || this.timeout) { // check timeout
-                                                             // every 1024 nodes
+        if (this.nodes % 1024 == 0) { // check timeout
+                                    // every 1024 nodes
             if ((new Date().getTime()) - this.startTime >= this.time_to_search){
                 this.timeout = true;
                 return 0;
             };
+        };
+        if (this.timeout) {
+            return 0;
         };
 
         // stand pat pruning -- Style is added here
@@ -3127,7 +3133,7 @@ function manage(time, board, inc, movestogo) {
                         time / Y + inc * Y/10 - MoveOverhead));
     };
     return Math.max(0, Math.min(time - MoveOverhead,
-                    time/movestogo + inc - MoveOverhead));
+                    time/(movestogo+3) + movestogo * inc / 10 - MoveOverhead));
 };  
 
 var board = new Board();
