@@ -3123,17 +3123,7 @@ function pretty_fen(fen) {
 
 function manage(time, board, inc, movestogo) {
     // for time management
-    /*
-    return Math.min((2 - Math.min(board.move_stack.length, 10)) * 
-           (time / Math.max(40 - board.move_stack.length, 1)) + inc, time);
-    */
-    if (movestogo == 0) {
-        var Y = Math.max(10, 40 - board.move_stack.length/2);
-        return Math.max(0, Math.min(time - MoveOverhead,
-                        time / Y + inc * Y/10 - MoveOverhead));
-    };
-    return Math.max(0, Math.min(time - MoveOverhead,
-                    time/(movestogo+3) + movestogo * inc / 10 - MoveOverhead));
+    return time/20 + inc/2;
 };  
 
 var board = new Board();
