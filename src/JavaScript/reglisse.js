@@ -2248,7 +2248,8 @@ class Search {
 
         // Eval pruning / Static null move pruning / Beta pruning /
         // Reverse futility pruning
-        var static_eval = evaluate(this.board); // static eval of the board
+        var static_eval = evaluate(this.board) +
+        ((this.board.turn == this.player ? Style : -Style)/(ply+1)) >> 0; // static eval of the board
         if (depth < 3 && (!is_pv) && (!flagInCheck) 
             && (Math.abs(beta - 1) > -mateValue + 100)) {
             var eval_margin = 120 * depth;

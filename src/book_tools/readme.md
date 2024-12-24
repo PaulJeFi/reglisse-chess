@@ -2,7 +2,7 @@
 
 Books format used in Reglisse are not usuals. They are in the same format than TSCP's book by [Tom Kerrigan](http://www.tckerrigan.com). Here is explained how to create your own Reglisse book, based on a Polyglott or a PGN file.
 
-First, you have to inslatall ```python-chess``` :
+First, you have to install ```python-chess``` :
 
 ```
 $ pip3 install python-chess
