@@ -1280,6 +1280,8 @@ class Board {
             };
 
         };
+
+        return moves;
     };
 
     genPseudoLegalCaptures() {
