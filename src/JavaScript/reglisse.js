@@ -2203,7 +2203,7 @@ class Search {
             };
         };
         // lower bound
-        mating_value = mating_value = -mateValue + ply;
+        mating_value = -mateValue + ply;
         if (mating_value >= alpha) {
             alpha = mating_value;
             if (beta <= mating_value) {
